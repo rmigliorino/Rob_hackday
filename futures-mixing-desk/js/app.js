@@ -200,5 +200,8 @@ $("#copyBtn").addEventListener("click",()=>{
     ta.value=txt;ta.select();});
 });
 $("#sources").innerHTML=KEYS.map((k,i)=>`<li><span class="k">[${i+1}]</span><a href="${SRC[k].u}" target="_blank" rel="noopener">${esc(SRC[k].t)}</a></li>`).join("");
+$("#srcCount").textContent=KEYS.length+" published reports";
+$("#startBtn").addEventListener("click",()=>{const c=$("#controls");c.hidden=false;$("#startRow").hidden=true;
+  c.scrollIntoView({behavior:RM.matches?"auto":"smooth",block:"start"});c.focus({preventScroll:true});});
 buildQs();updateStatus();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(generated)paintAll();});
