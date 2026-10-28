@@ -85,7 +85,11 @@ button{font:inherit;cursor:pointer;color:inherit}
 .subtitle{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
 .subtitle b{color:var(--ink);font-weight:500}
 .lede{font-family:var(--f-serif);font-size:21px;line-height:1.35;max-width:40ch}
-.world{display:flex;flex-direction:column;gap:12px}
+.world{display:flex;flex-direction:column;gap:14px}
+.world-list{display:flex;flex-direction:column;gap:12px}
+.playback{align-self:flex-start;display:inline-flex;align-items:center;gap:9px}
+.playback svg{width:9px;height:9px;transition:transform .2s}
+.playback[aria-expanded="true"] svg{transform:rotate(90deg)}
 .readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 @media (max-width:520px){.readouts{grid-template-columns:minmax(0,1fr)}}
 .readout{display:flex;flex-direction:column;gap:2px}

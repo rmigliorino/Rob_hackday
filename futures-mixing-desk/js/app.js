@@ -116,14 +116,17 @@ function windowHTML(pal,mat,seed,tab,codeTxt,live){
     <span class="code">${codeTxt}</span></div>`;
 }
 function render(){
-  const {F,next,close,subs,snap,roll}=generated,cd=code(snap),fhz=hz(cd+F.name);
+  const {F,next,close,subs,snap,roll,showChoices}=generated,cd=code(snap),fhz=hz(cd+F.name);
   $("#future").innerHTML=`
     ${windowHTML(F.pal,F.mat,hash(cd+F.name),"2050",fhz+" HZ",true)}
     <div class="card-body">
       <span class="subtitle">Your generated future · signal ${cd}${close?` · close to <b>${next.name}</b>`:""}</span>
       <h2 class="caps">${F.name}</h2>
       <p class="lede">${F.lede}</p>
-      <div class="world"><span class="label">Life in this world · your five choices</span>${FORCES.map((f,n)=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>CH 0${n+1} · ${f.label}</small></span><span>${sg[1]} ${cites(sg[2])}</span></div>`}).join("")}</div>
+      <div class="world">
+        <button class="ghost playback" id="playBtn" type="button" aria-expanded="${!!showChoices}" aria-controls="worldList"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg><span>${showChoices?"Hide your choices":"Play back your choices"}</span></button>
+        <div class="world-list" id="worldList" ${showChoices?"":"hidden"}><span class="label">Life in this world · your five choices</span>${FORCES.map((f,n)=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>CH 0${n+1} · ${f.label}</small></span><span>${sg[1]} ${cites(sg[2])}</span></div>`}).join("")}</div>
+      </div>
       <div class="readouts">${F.figs.map(x=>`<div class="readout"><b>${x[0]}</b><span>${x[1]} ${cites(x[2])}</span></div>`).join("")}</div>
       <div class="finlife"><span class="chip">Financial life in this world</span><p>${F.fin}</p></div>
       <p class="refs">Built from: ${F.refs.map(r=>`${r[0]} ${cites(r[1])}`).join(" · ")}</p>
@@ -144,6 +147,9 @@ function render(){
       </div>
     </article>`}).join("");
   const r=$("#results");r.classList.remove("fresh");void r.offsetWidth;r.classList.add("fresh");
+  $("#playBtn").addEventListener("click",e=>{const b=e.currentTarget,open=b.getAttribute("aria-expanded")!=="true";
+    generated.showChoices=open;b.setAttribute("aria-expanded",open);$("#worldList").hidden=!open;
+    b.lastElementChild.textContent=open?"Hide your choices":"Play back your choices";});
   requestAnimationFrame(paintAll);
 }
 function summary(){

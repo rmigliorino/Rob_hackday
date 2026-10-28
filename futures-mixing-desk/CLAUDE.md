@@ -32,7 +32,7 @@ It is provocation, not a forecast. The audience is mixed product, design, strate
    - How hard do we act on climate? Delayed · Uneven · Climate-first
 2. **Matching.** Answers (1–3 each) are matched by Euclidean distance to the nearest of eight `FUTURES` profiles: The Leisure Dividend, Winner-Takes-Most, The Patchwork Economy, Fortress Economies, The Storm Years, The Resilience Decades, The Managed Transition, The Long Plateau. If the runner-up is close, the card says so.
 3. **Sub-futures.** Each of the 15 `SUBS` has a score function over the answers (scaled 0–1). The top three with different drivers are shown. "Draw other sub-futures" samples from the strong pool.
-4. **Life in this world.** The future card lists each of the five choices with its sourced description, in place of the earlier channel readout with dots.
+4. **Life in this world.** The future card has a "Play back your choices" button that reveals each of the five choices with its sourced description. It starts hidden so the future's description gets the focus, and stays open across sub-future redraws until the next Generate.
 5. **Tuning animation.** About 1.9 seconds: five channel waveforms converge into one signal, level meters settle per channel, and the frequency counts up to the future's Hz. Reduced motion gets a short static version.
 
 ## Content rules
