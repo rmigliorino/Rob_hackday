@@ -123,6 +123,7 @@ function render(){
       <span class="subtitle">Your generated future · signal ${cd}${close?` · close to <b>${next.name}</b>`:""}</span>
       <h2 class="caps">${F.name}</h2>
       <p class="lede">${F.lede}</p>
+      <p class="more">${F.more}</p>
       <div class="world">
         <button class="ghost playback" id="playBtn" type="button" aria-expanded="${!!showChoices}" aria-controls="worldList"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg><span>${showChoices?"Hide your choices":"Play back your choices"}</span></button>
         <div class="world-list" id="worldList" ${showChoices?"":"hidden"}><span class="label">Life in this world · your five choices</span>${FORCES.map((f,n)=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>CH 0${n+1} · ${f.label}</small></span><span>${sg[1]} ${cites(sg[2])}</span></div>`}).join("")}</div>
@@ -133,34 +134,63 @@ function render(){
     </div>`;
   $("#subs").innerHTML=subs.map((x,i)=>{
     const look=DRIVER_LOOK[x.d],p=PAL[look[0]];
-    return `<article class="card sub" style="--c1:${p[0]};--c2:${p[1]}">
-      ${windowHTML(look[0],look[1],hash(x.t+cd+roll),"SUB-FUTURE 0"+(i+1),hz(x.t+cd)+" HZ",false)}
-      <div class="card-body">
-        <div class="steps"><span>0${i+1}</span><span class="bar"><i style="width:${(i+1)/3*100}%"></i></span><span class="of">03</span></div>
-        <h3 class="caps">${x.t}</h3>
+    return `<button class="sub-tile" type="button" data-i="${i}" aria-expanded="false" aria-controls="subPanel" style="--c1:${p[0]};--c2:${p[1]}">
+      <span class="window tile-win"><canvas data-pal="${look[0]}" data-mat="${look[1]}" data-seed="${hash(x.t+cd+roll)}" aria-hidden="true"></canvas></span>
+      <span class="tile-body">
+        <span class="label">Sub-future 0${i+1} · ${hz(x.t+cd)} Hz</span>
+        <span class="tile-title caps">${x.t}</span>
         <span class="drv">Driven by ${DRIVER_LABEL[x.d].toLowerCase()}</span>
-        <div class="tags"><span class="str">${level(x.sc)}</span>${x.areas.map(a=>`<span>${a}</span>`).join("")}</div>
-        <p class="what">${x.what}</p>
-        <ul class="timeline">${x.tl.map(t=>`<li><span class="when">${t[0]}</span><span>${t[1]} ${cites(t[2])}</span></li>`).join("")}</ul>
-        <div class="story"><span class="who">${x.who} · illustrative</span>${x.story}</div>
-        <div class="hmw"><span class="chip">Financial services · How might we</span><p>How might we ${x.hmw}</p></div>
-      </div>
-    </article>`}).join("");
+        <span class="tile-open"><span>Open</span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg></span>
+      </span>
+    </button>`}).join("");
+  showSub(generated.openSub);
   const r=$("#results");r.classList.remove("fresh");void r.offsetWidth;r.classList.add("fresh");
   $("#playBtn").addEventListener("click",e=>{const b=e.currentTarget,open=b.getAttribute("aria-expanded")!=="true";
     generated.showChoices=open;b.setAttribute("aria-expanded",open);$("#worldList").hidden=!open;
     b.lastElementChild.textContent=open?"Hide your choices":"Play back your choices";});
   requestAnimationFrame(paintAll);
 }
+function showSub(i){
+  const panel=$("#subPanel"),x=i==null?null:generated.subs[i];
+  generated.openSub=x?i:null;
+  document.querySelectorAll(".sub-tile").forEach(t=>{const on=+t.dataset.i===generated.openSub;
+    t.setAttribute("aria-expanded",on);t.classList.toggle("on",on);t.querySelector(".tile-open span").textContent=on?"Close":"Open";});
+  if(!x){panel.hidden=true;panel.innerHTML="";return;}
+  const p=PAL[DRIVER_LOOK[x.d][0]];
+  panel.style.setProperty("--c1",p[0]);panel.style.setProperty("--c2",p[1]);
+  panel.setAttribute("aria-label","Sub-future 0"+(i+1)+": "+x.t);
+  panel.innerHTML=`
+    <div class="sp-head">
+      <span class="label">Sub-future 0${i+1} of 03 · driven by ${DRIVER_LABEL[x.d].toLowerCase()}</span>
+      <h3 class="caps">${x.t}</h3>
+      <div class="tags"><span class="str">${level(x.sc)}</span>${x.areas.map(a=>`<span>${a}</span>`).join("")}</div>
+    </div>
+    <div class="sp-grid">
+      <div class="sp-col">
+        <section class="sp-sec"><span class="sp-label">In 2050</span><p class="what">${x.what}</p></section>
+        <section class="sp-sec"><span class="sp-label">How we get there</span>
+          <ol class="timeline">${x.tl.map(t=>`<li><span class="when">${t[0]}</span><span>${t[1]} ${cites(t[2])}</span></li>`).join("")}<li class="end"><span class="when">2050</span><span>${x.t}</span></li></ol>
+        </section>
+      </div>
+      <div class="sp-col">
+        <div class="story"><span class="who">${x.who} · illustrative</span>${x.story}</div>
+        <div class="hmw"><span class="chip">Financial services · How might we</span><p>How might we ${x.hmw}</p></div>
+      </div>
+    </div>`;
+  panel.hidden=false;
+}
 function summary(){
-  const {F,subs,snap}=generated,L=[`FUTURE: ${F.name}`,F.lede,"",
+  const {F,subs,snap}=generated,L=[`FUTURE: ${F.name}`,F.lede,F.more,"",
     "Choices: "+FORCES.map(f=>`${f.label}: ${f.stages[snap[f.id]-1][0]}`).join(" | "),
     "",`Financial life: ${F.fin}`,""];
   subs.forEach((x,i)=>L.push(`SUB-FUTURE ${i+1}: ${x.t}`,x.what,`Story (illustrative), ${x.who}: ${x.story}`,`HMW: How might we ${x.hmw}`,""));
   L.push("Sources: see the Futures Mixing Desk source list.");return L.join("\n");
 }
 $("#genBtn").addEventListener("click",generate);
-$("#rerollBtn").addEventListener("click",()=>{if(dirty){generate();return;}generated.subs=pickSubs(true);generated.roll++;render();});
+$("#subs").addEventListener("click",e=>{const t=e.target.closest(".sub-tile");if(!t)return;
+  const i=+t.dataset.i;showSub(generated.openSub===i?null:i);
+  if(generated.openSub!=null)$("#subPanel").scrollIntoView({behavior:RM.matches?"auto":"smooth",block:"nearest"});});
+$("#rerollBtn").addEventListener("click",()=>{if(dirty){generate();return;}generated.subs=pickSubs(true);generated.roll++;generated.openSub=null;render();});
 $("#drawBtn").addEventListener("click",()=>{FORCES.forEach(f=>st[f.id]=1+Math.floor(Math.random()*3));syncQs();onChange();});
 $("#copyBtn").addEventListener("click",()=>{
   const txt=summary(),t=$("#toast");
