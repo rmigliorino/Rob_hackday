@@ -16,7 +16,7 @@ It is provocation, not a forecast. The audience is mixed product, design, strate
 | --- | --- |
 | `index.html` | Page structure: hero, Set the forces, output (tuner + results), method and sources |
 | `styles.css` | Design tokens (light and dark), specimen cards, controls, tuner, sub-future cards |
-| `js/data.js` | All content: `SRC` sources, `PAL` palettes, `FORCES`, `GIVENS`, `FUTURES`, `DRIVER_LOOK`, `DRIVER_LABEL`, `SUBS` |
+| `js/data.js` | All content: `SRC` sources, `PAL` palettes, `FORCES`, `FUTURES`, `DRIVER_LOOK`, `DRIVER_LABEL`, `SUBS` |
 | `js/specimens.js` | Canvas drawing of the sound-form objects and the slow ambient animation |
 | `js/app.js` | State, question controls, matching, sub-future selection, tuning animation, rendering, copy for Mural |
 | `docs/` | Design brief (docx and pdf) and the ChatGPT handoff with recommendations |
@@ -32,7 +32,7 @@ It is provocation, not a forecast. The audience is mixed product, design, strate
    - How hard do we act on climate? Delayed · Uneven · Climate-first
 2. **Matching.** Answers (1–3 each) are matched by Euclidean distance to the nearest of eight `FUTURES` profiles: The Leisure Dividend, Winner-Takes-Most, The Patchwork Economy, Fortress Economies, The Storm Years, The Resilience Decades, The Managed Transition, The Long Plateau. If the runner-up is close, the card says so.
 3. **Sub-futures.** Each of the 15 `SUBS` has a score function over the answers (scaled 0–1). The top three with different drivers are shown. "Draw other sub-futures" samples from the strong pool.
-4. **Givens.** An older population and thin financial buffers appear in every future instead of being choices.
+4. **Life in this world.** The future card lists each of the five choices with its sourced description, in place of the earlier channel readout with dots.
 5. **Tuning animation.** About 1.9 seconds: five channel waveforms converge into one signal, level meters settle per channel, and the frequency counts up to the future's Hz. Reduced motion gets a short static version.
 
 ## Content rules
@@ -58,6 +58,7 @@ It is provocation, not a forecast. The audience is mixed product, design, strate
 - Climate was kept as its own force at the user's request.
 - BCG's 2050 scenarios are one source among about twenty, not the core frame.
 - **A v2 "participatory vertical slice" was tried and rejected as too complicated to use.** It had tension doors, change-one-thing comparisons, evidence labels and a takeaway card, and was based on `docs/handoff-v2-chatgpt-recommendations.docx`. It is in `archive/v2-vertical-slice-rejected.html`. Borrow single ideas from it only if asked; do not reintroduce the multi-step flow.
+- Givens (older population, thin buffers) and the separate Life in this world panel were removed; the five choices now sit inside the future card.
 - The output is blank until all five questions are answered. A sonic, frequency theme was added and then toned down to be subtle.
 
 ## Open questions

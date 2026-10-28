@@ -123,13 +123,11 @@ function render(){
       <span class="subtitle">Your generated future · signal ${cd}${close?` · close to <b>${next.name}</b>`:""}</span>
       <h2 class="caps">${F.name}</h2>
       <p class="lede">${F.lede}</p>
-      <div class="spec">${FORCES.map((f,n)=>{const v=snap[f.id];return `<div class="srow"><span class="k">CH 0${n+1} · ${f.label}</span><span class="v">${f.stages[v-1][0]}</span><span class="dots" aria-hidden="true">${[1,2,3].map(i=>`<i class="${i<=v?"on":""}"></i>`).join("")}</span></div>`}).join("")}</div>
+      <div class="world"><span class="label">Life in this world · your five choices</span>${FORCES.map((f,n)=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>CH 0${n+1} · ${f.label}</small></span><span>${sg[1]} ${cites(sg[2])}</span></div>`}).join("")}</div>
       <div class="readouts">${F.figs.map(x=>`<div class="readout"><b>${x[0]}</b><span>${x[1]} ${cites(x[2])}</span></div>`).join("")}</div>
       <div class="finlife"><span class="chip">Financial life in this world</span><p>${F.fin}</p></div>
       <p class="refs">Built from: ${F.refs.map(r=>`${r[0]} ${cites(r[1])}`).join(" · ")}</p>
     </div>`;
-  $("#givens").innerHTML=`<span class="label">Givens · true in every future</span>`+GIVENS.map(g=>`<div class="wi"><span class="k">${g[0]}</span><span>${g[1]} ${cites(g[2])}</span></div>`).join("");
-  $("#world").innerHTML=`<span class="label">Life in this world · your five choices</span>`+FORCES.map(f=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>${f.label}</small></span><span>${sg[1]} ${cites(sg[2])}</span></div>`}).join("");
   $("#subs").innerHTML=subs.map((x,i)=>{
     const look=DRIVER_LOOK[x.d],p=PAL[look[0]];
     return `<article class="card sub" style="--c1:${p[0]};--c2:${p[1]}">
@@ -151,7 +149,7 @@ function render(){
 function summary(){
   const {F,subs,snap}=generated,L=[`FUTURE: ${F.name}`,F.lede,"",
     "Choices: "+FORCES.map(f=>`${f.label}: ${f.stages[snap[f.id]-1][0]}`).join(" | "),
-    "Givens: "+GIVENS.map(g=>g[0]).join("; "),"",`Financial life: ${F.fin}`,""];
+    "",`Financial life: ${F.fin}`,""];
   subs.forEach((x,i)=>L.push(`SUB-FUTURE ${i+1}: ${x.t}`,x.what,`Story (illustrative), ${x.who}: ${x.story}`,`HMW: How might we ${x.hmw}`,""));
   L.push("Sources: see the Futures Mixing Desk source list.");return L.join("\n");
 }

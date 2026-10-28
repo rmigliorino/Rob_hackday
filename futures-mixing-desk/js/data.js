@@ -1,4 +1,4 @@
-/* Content: sources, forces, givens, futures and sub-futures. Every figure must carry a source key. */
+/* Content: sources, forces, futures and sub-futures. Every figure must carry a source key. */
 const SRC = {
   B50:{t:"BCG Henderson Institute, Beyond Tomorrow: Four Scenarios for the World of 2050 (Apr 2026)",u:"https://www.bcg.com/publications/2026/beyond-tomorrow-four-scenarios-for-the-world-of-2050"},
   BPR:{t:"BCG press release on Scenarios 2050 (Apr 2026)",u:"https://www.bcg.com/press/20april2026-global-economy-four-different-directions-2050"},
@@ -57,11 +57,6 @@ const FORCES=[
   ["Climate-first","Fossil fuels fall from 81% to 35% of energy and warming stabilises near 1.8°C.",["BPR"]]]}
 ];
 
-const GIVENS=[
- ["An older population, longer working lives","52% of new first-time buyers' mortgages already end at 65 or later, and lending to over-55s grew 13.4% in a year.",["EXP","UKL"]],
- ["Starting from thin buffers","24% of UK adults have low financial resilience today, and one in ten has no cash savings.",["FCA"]]
-];
-
 /* Eight archetypes. p = profile across [ai,gains,earn,world,climate] on 1–3 */
 const FUTURES=[
  {name:"The Leisure Dividend",pal:"peri",mat:"glass",p:[3,3,2,1,3],
@@ -107,7 +102,7 @@ const FUTURES=[
 ];
 
 const DRIVER_LOOK={ai:["peri","glass"],gains:["magenta","ribbon"],earn:["peach","studded"],time:["gold","glass"],life:["coral","pearls"],world:["steel","metal"],climate:["lime","branch"]};
-const DRIVER_LABEL={ai:"AI at work",gains:"Who benefits",earn:"How people earn",time:"AI and who benefits",life:"Given: longer lives",world:"World stability",climate:"Climate action"};
+const DRIVER_LABEL={ai:"AI at work",gains:"Who benefits",earn:"How people earn",time:"AI and who benefits",life:"Longer lives",world:"World stability",climate:"Climate action"};
 
 const SUBS=[
  {t:"The four-day household",d:"time",areas:["Income","Saving","Tax"],
