@@ -1,0 +1,837 @@
+<title>Futures Mixing Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single exploration path on specimen cards. Mix a world (controls + world card), open one of three tension doors, investigate it, change one thing and compare against a held baseline, challenge a view, take away a compact card. Space and soft fills separate; very few rules. */
+:root{
+  --ground:#E6E2F1; --ground2:#EEECF3; --card:#FFFFFF; --ink:#141418; --muted:#6B6A75; --line:#E4E2EA; --soft:#F3F1F7;
+  --pill:#1B1B1F; --pill-ink:#FFFFFF; --seg:#EFEDF4; --hi:#FFF2C9; --hi-ink:#6B4E00;
+  --obs:#DDF1E4; --obs-ink:#1E6B3A; --proj:#DDE8FB; --proj-ink:#1F4E9E; --assum:#ECEAF1; --assum-ink:#4E4C57; --hyp:#FCE9D6; --hyp-ink:#8A4B10;
+  --f-display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-serif:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#121214; --ground2:#18171C; --card:#1D1C21; --ink:#EEEDF2; --muted:#9C9AA6; --line:#2E2D34; --soft:#26252C;
+  --pill:#EEEDF2; --pill-ink:#141418; --seg:#28272E; --hi:#3A3214; --hi-ink:#F2D27A;
+  --obs:#173A25; --obs-ink:#8FDBA9; --proj:#1A2D4D; --proj-ink:#9DC0F5; --assum:#2C2B33; --assum-ink:#C3C1CC; --hyp:#3D2814; --hyp-ink:#F2B983; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#121214; --ground2:#18171C; --card:#1D1C21; --ink:#EEEDF2; --muted:#9C9AA6; --line:#2E2D34; --soft:#26252C;
+  --pill:#EEEDF2; --pill-ink:#141418; --seg:#28272E; --hi:#3A3214; --hi-ink:#F2D27A;
+  --obs:#173A25; --obs-ink:#8FDBA9; --proj:#1A2D4D; --proj-ink:#9DC0F5; --assum:#2C2B33; --assum-ink:#C3C1CC; --hyp:#3D2814; --hyp-ink:#F2B983; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:linear-gradient(160deg,var(--ground) 0%,var(--ground2) 60%) fixed;background-color:var(--ground);color:var(--ink);
+  font-family:var(--f-display);font-size:15px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:24px 72px}
+.wrap{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+h1,h2,h3,h4{margin:0;line-height:1.05;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+button{font:inherit;cursor:pointer;color:inherit}
+textarea,input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:1px solid transparent;border-radius:12px;padding:10px 12px;width:100%;resize:vertical}
+textarea:focus,input[type=text]:focus{outline:none;border-color:var(--ink)}
+.caps{font-weight:800;font-stretch:105%;text-transform:uppercase;letter-spacing:-.01em}
+.label{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.cite{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);white-space:nowrap;text-decoration:none}
+.cite:hover{color:var(--ink);text-decoration:underline}
+
+/* Hero */
+.hero{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px 32px}
+.hero h1{font-weight:900;font-stretch:118%;text-transform:uppercase;font-size:clamp(36px,7vw,80px);letter-spacing:-.02em}
+.hero p{max-width:48ch;color:var(--muted)}
+.tagrow{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tagpill{font-family:var(--f-mono);font-size:11px;border:1px solid var(--ink);border-radius:999px;padding:3px 10px;text-transform:uppercase;letter-spacing:.04em}
+
+/* Step headings */
+.step{display:flex;flex-direction:column;gap:14px}
+.step-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.step-head .n{font-family:var(--f-mono);font-size:12px;font-weight:500;background:var(--pill);color:var(--pill-ink);border-radius:999px;padding:3px 9px}
+.step-head h2{font-weight:900;font-stretch:112%;text-transform:uppercase;font-size:clamp(24px,3.4vw,36px)}
+.step-head p{flex-basis:100%;color:var(--muted);max-width:62ch;font-size:14.5px}
+
+/* Card shell + specimen window */
+.card{background:var(--card);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.pad{padding:20px 22px}
+.window{position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,var(--c1),var(--c2));isolation:isolate}
+.window canvas{display:block;width:100%;height:100%}
+.float{position:absolute;inset:0;animation:float 7s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.tab,.code{position:absolute;background:var(--card);font-family:var(--f-mono);font-size:11px;color:var(--ink);z-index:2;letter-spacing:.02em}
+.tab{top:0;left:0;padding:8px 16px 9px 6px;border-bottom-right-radius:18px}
+.tab::before,.tab::after,.code::before,.code::after{content:"";position:absolute;width:18px;height:18px}
+.tab::before{top:0;right:-18px;background:radial-gradient(circle at 100% 100%,transparent 17.5px,var(--card) 18px)}
+.tab::after{left:0;bottom:-18px;background:radial-gradient(circle at 100% 100%,transparent 17.5px,var(--card) 18px)}
+.code{bottom:0;right:0;padding:9px 6px 8px 16px;border-top-left-radius:18px}
+.code::before{top:-18px;right:0;background:radial-gradient(circle at 0 0,transparent 17.5px,var(--card) 18px)}
+.code::after{bottom:0;left:-18px;background:radial-gradient(circle at 0 0,transparent 17.5px,var(--card) 18px)}
+
+/* Evidence labels */
+.ev{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:2px 8px;white-space:nowrap;vertical-align:1px}
+.ev::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.ev.obs{background:var(--obs);color:var(--obs-ink)} .ev.proj{background:var(--proj);color:var(--proj-ink)}
+.ev.assum{background:var(--assum);color:var(--assum-ink)} .ev.hyp{background:var(--hyp);color:var(--hyp-ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12.5px}
+
+/* Mix a world */
+.mix{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:900px){.mix{grid-template-columns:minmax(0,1fr)}}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.preset{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px 7px 8px;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px}
+.preset i{width:18px;height:18px;border-radius:50%;background:linear-gradient(180deg,var(--c1),var(--c2))}
+.preset[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.qs{display:flex;flex-direction:column;gap:16px}
+.q{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;min-width:0}
+.q legend{padding:0;font-weight:700;font-size:15px;margin-bottom:7px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--seg);border-radius:999px;padding:4px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{display:flex;align-items:center;justify-content:center;text-align:center;min-height:40px;padding:5px 8px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;line-height:1.15;transition:background .2s,color .2s}
+.seg label:hover{background:var(--card)}
+.seg input:checked + label{background:var(--pill);color:var(--pill-ink)}
+.seg input:focus-visible + label{outline:2px solid var(--ink);outline-offset:2px}
+.seg input:disabled + label{opacity:.35;cursor:not-allowed}
+.surprise{align-self:flex-start;border:1px solid var(--ink);background:transparent;border-radius:999px;padding:8px 14px;font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+
+.world .window{aspect-ratio:16/10}
+.world-body{padding:4px 8px 8px;display:flex;flex-direction:column;gap:14px}
+.world h3{font-size:clamp(30px,4vw,44px);font-weight:800;font-stretch:105%;text-transform:uppercase}
+.world .lede{font-family:var(--f-serif);font-size:19px;line-height:1.35}
+.assume{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.assume li{display:grid;grid-template-columns:minmax(0,8.5em) minmax(0,1fr);gap:12px;font-size:13.5px}
+.assume .k{font-weight:700;font-size:13px}
+.assume .k small{display:block;font-family:var(--f-mono);font-weight:400;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+@media (max-width:440px){.assume li{grid-template-columns:minmax(0,1fr);gap:2px}}
+.pressures{display:flex;flex-direction:column;gap:8px;background:var(--soft);border-radius:14px;padding:12px 14px;font-size:13px}
+.note{border-radius:14px;padding:12px 14px;background:var(--hi);color:var(--hi-ink);font-size:13.5px}
+.note b{font-weight:700}
+
+/* Doors */
+.need{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.need .chip{background:var(--pill);color:var(--pill-ink);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px}
+.need .other{font-size:12.5px;color:var(--muted)}
+.doors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.doors{grid-template-columns:minmax(0,1fr)}}
+.door{background:var(--card);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:12px;text-align:left;border:2px solid transparent;min-width:0}
+.door:hover{border-color:var(--line)}
+.door[aria-pressed="true"]{border-color:var(--ink)}
+.door .window{aspect-ratio:16/8}
+.door-body{padding:0 6px 6px;display:flex;flex-direction:column;gap:8px}
+.door h3{font-size:22px;font-weight:800;font-stretch:104%;text-transform:uppercase}
+.door .teaser{font-size:14px}
+.status{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.status i{width:8px;height:8px;border-radius:2px;background:currentColor}
+.status.pressure{color:var(--hyp-ink)} .status.holding{color:var(--obs-ink)} .status.mixed{color:var(--muted)}
+.door .open{font-family:var(--f-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;display:inline-flex;align-items:center;gap:8px}
+.door .open b{width:26px;height:26px;border-radius:50%;background:var(--pill);color:var(--pill-ink);display:grid;place-items:center;font-weight:400}
+
+.empty{background:var(--card);border-radius:8px;padding:22px;color:var(--muted);font-size:14.5px;border:1px dashed var(--line)}
+
+/* Investigate */
+.inv{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.inv{grid-template-columns:minmax(0,1fr)}}
+.block{display:flex;flex-direction:column;gap:8px}
+.block h4{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mech{font-family:var(--f-serif);font-size:19px;line-height:1.38}
+.mech em{font-style:normal;font-weight:500;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
+.here{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.here li{font-size:14px;display:flex;flex-direction:column;gap:2px}
+.here li b{font-size:12.5px;font-family:var(--f-mono);font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.story{border-radius:16px;padding:16px 18px;background:var(--soft);font-size:14.5px}
+.story .who{display:block;font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.evlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+.evlist li{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+
+/* Experiment */
+.exp-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.exp-steps{grid-template-columns:minmax(0,1fr)}}
+.mini{display:flex;flex-direction:column;gap:8px}
+.mini .t{font-weight:700;font-size:14.5px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600}
+.opt[aria-pressed="true"]{background:var(--pill);color:var(--pill-ink);border-color:var(--pill)}
+.opt:disabled{opacity:.35;cursor:not-allowed}
+.go{display:inline-flex;align-items:center;gap:12px;background:var(--pill);color:var(--pill-ink);border:0;border-radius:999px;padding:5px 5px 5px 18px;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.02em}
+.go .arr{width:34px;height:34px;border-radius:50%;background:var(--pill-ink);color:var(--pill);display:grid;place-items:center}
+.go .arr svg{width:14px;height:14px}
+.go:disabled{opacity:.35;cursor:not-allowed}
+.ghost{border:1px solid var(--ink);background:transparent;border-radius:999px;padding:8px 14px;font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+
+.compare{display:flex;flex-direction:column;gap:18px}
+.ba{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:640px){.ba{grid-template-columns:minmax(0,1fr)}}
+.side{background:var(--soft);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.side.after{background:linear-gradient(170deg,var(--c2),var(--soft) 80%)}
+.side .t{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.conds{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.conds li{display:flex;justify-content:space-between;gap:10px}
+.conds li span:first-child{color:var(--muted)}
+.conds li span:last-child{text-align:right;font-weight:600}
+.conds li.changed{background:var(--hi);color:var(--hi-ink);border-radius:8px;padding:2px 8px;margin:0 -8px}
+.conds li.changed span{color:var(--hi-ink)}
+.impl{font-family:var(--f-serif);font-size:17.5px;line-height:1.38}
+.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:14px 16px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.verdict b{font-weight:800;font-stretch:105%;text-transform:uppercase;font-size:17px}
+.verdict .pred{font-size:13.5px;color:var(--muted)}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:760px){.cols2{grid-template-columns:minmax(0,1fr)}}
+.invariant{border-radius:16px;padding:14px 16px;background:var(--obs);color:var(--obs-ink)}
+.invariant p{color:var(--ink)}
+.counter{border-radius:16px;padding:14px 16px;background:var(--hyp);}
+.counter p{color:var(--ink)}
+.row-actions{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Challenge */
+.dilemma{font-family:var(--f-serif);font-size:22px;line-height:1.28;max-width:46ch}
+.leans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.leans{grid-template-columns:minmax(0,1fr)}}
+.lean{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:14px;text-align:left;font-size:14px;display:flex;flex-direction:column;gap:6px}
+.lean b{font-family:var(--f-mono);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.lean[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+details.po{background:var(--card);border-radius:8px;padding:16px 20px}
+details.po summary{cursor:pointer;font-weight:700}
+.po-grid{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.po-grid label{font-size:13.5px;font-weight:600;display:flex;flex-direction:column;gap:6px}
+
+/* Takeaway */
+.take{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.take{grid-template-columns:minmax(0,1fr)}}
+.starters{display:flex;flex-wrap:wrap;gap:6px}
+.starter{border:1px dashed var(--muted);background:transparent;border-radius:999px;padding:5px 11px;font-size:12.5px}
+.tcard{background:var(--card);border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+.tcard .row{display:grid;grid-template-columns:minmax(0,7.5em) minmax(0,1fr);gap:10px}
+.tcard .row span:first-child{font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding-top:2px}
+.tcard h3{font-size:22px;font-weight:800;text-transform:uppercase}
+.toast{font-family:var(--f-mono);font-size:12px;min-height:1.2em}
+#copyFallback{width:100%;font-family:var(--f-mono);font-size:12px}
+
+.method{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:28px;background:var(--card);border-radius:8px;padding:22px}
+@media (max-width:760px){.method{grid-template-columns:minmax(0,1fr)}}
+.method h2{font-size:20px;margin-bottom:10px}
+.method p{margin:0 0 8px;max-width:60ch;font-size:14px}
+.srclist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.srclist li{display:grid;grid-template-columns:3em minmax(0,1fr);gap:6px}
+.srclist .k{font-family:var(--f-mono);color:var(--muted)}
+@keyframes rise{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fresh{animation:rise .45s ease both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="tagrow"><span class="tagpill">2050</span><span class="tagpill">Financial life</span><span class="tagpill">Slice v2 · testing</span></div>
+      <h1>Futures<br>Mixing Desk</h1>
+    </div>
+    <p>A thought experiment, not a forecast. Mix a plausible 2050, open a tension in people's financial lives, then change one condition and see what changes for the same need, and what doesn't.</p>
+  </header>
+
+  <section class="step" aria-labelledby="h1">
+    <div class="step-head"><span class="n">1</span><h2 id="h1">Mix a world</h2><p>Start from a ready-made world or set the five conditions yourself. Everything below updates as you change them.</p></div>
+    <div class="mix">
+      <div class="card pad">
+        <div class="presets" id="presets" aria-label="Starter worlds"></div>
+        <div class="qs" id="qs"></div>
+        <button class="surprise" id="surpriseBtn" type="button">Surprise me</button>
+      </div>
+      <article class="card world" id="world"></article>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="h2">
+    <div class="step-head"><span class="n">2</span><h2 id="h2">Open a tension</h2><p>Three provocations about one enduring need. Each is a different kind of challenge. Pick the one you want to dig into.</p></div>
+    <div class="need"><span class="label">Financial need</span><span class="chip">Feel secure and resilient</span><span class="other">More needs, such as later life and care, come after this test.</span></div>
+    <div class="doors" id="doors"></div>
+  </section>
+
+  <section class="step" aria-labelledby="h3" id="invSec">
+    <div class="step-head"><span class="n">3</span><h2 id="h3">Investigate</h2><p>How this tension works, what it looks like in your world, a customer moment and the evidence behind it.</p></div>
+    <div id="inv"></div>
+  </section>
+
+  <section class="step" aria-labelledby="h4" id="expSec">
+    <div class="step-head"><span class="n">4</span><h2 id="h4">Change one thing</h2><p>Keep everything else fixed. Pick one condition to change, predict what happens to the same need, then compare.</p></div>
+    <div id="exp"></div>
+  </section>
+
+  <section class="step" aria-labelledby="h5" id="chSec">
+    <div class="step-head"><span class="n">5</span><h2 id="h5">Challenge a view</h2><p>There is no right answer here. Pick where you lean, then face the strongest argument against it.</p></div>
+    <div id="ch"></div>
+  </section>
+
+  <section class="step" aria-labelledby="h6">
+    <div class="step-head"><span class="n">6</span><h2 id="h6">Take it to the workshop</h2><p>Write the provocation you want to bring, then copy a compact card for Mural.</p></div>
+    <div class="take">
+      <div class="card pad" style="gap:12px">
+        <label for="mine" style="font-weight:700">Your provocation</label>
+        <div class="starters" id="starters"></div>
+        <textarea id="mine" rows="4" placeholder="An assumption you now question, a dilemma, or an opportunity worth testing"></textarea>
+        <div class="row-actions">
+          <button class="go" id="copyBtn" type="button">Copy card <span class="arr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12L12 4M5.5 4H12v6.5"/></svg></span></button>
+          <button class="ghost" id="copyNotesBtn" type="button">Copy source notes</button>
+        </div>
+        <div class="toast" id="toast" aria-live="polite"></div>
+      </div>
+      <div class="tcard" id="tcard"></div>
+    </div>
+  </section>
+
+  <section class="method">
+    <div>
+      <h2 class="caps">How to read the desk</h2>
+      <div class="legend" style="margin-bottom:12px"><span class="ev obs">Observed evidence</span><span class="ev proj">Published projection</span><span class="ev assum">Scenario assumption</span><span class="ev hyp">Strategic hypothesis</span></div>
+      <p><b>Observed evidence</b> is a sourced fact about a stated time and place; it is not proof of 2050. <b>Published projections</b> come from named reports with their own assumptions. <b>Scenario assumptions</b> are the conditions you chose. <b>Strategic hypotheses</b> are reasoned, contestable interpretations written for this desk.</p>
+      <p>All content is curated in advance; nothing is generated at run time and no data leaves your device. Customer moments are illustrative composites, not real people. This is a test slice: one financial need, three tensions and a provisional set of five conditions.</p>
+    </div>
+    <div>
+      <h2 class="caps">Sources</h2>
+      <ul class="srclist" id="sources"></ul>
+    </div>
+  </section>
+</div>
+
+<script>
+/* Window palettes: [top, bottom, tint] */
+const PAL={
+  peri:["#5E58E2","#BFB2FF","#E4E1FF"], gold:["#E7A70B","#F7E4A8","#F6E3B0"], coral:["#E23D5F","#FAB59D","#FFD9CF"],
+  lime:["#B8DA2A","#EDF4AE","#EEF3D2"], magenta:["#A54EC3","#DCA3EA","#C9B8F5"], steel:["#535559","#BBBDC0","#E6E7E9"],
+  sky:["#4C8DE0","#C4E2FF","#DDEBFF"], peach:["#F2784C","#FFD6BF","#FFE6D8"]
+};
+
+
+
+
+const SRC={
+  B50:{t:"BCG Henderson Institute, Beyond Tomorrow: Four Scenarios for the World of 2050 (Apr 2026)",u:"https://www.bcg.com/publications/2026/beyond-tomorrow-four-scenarios-for-the-world-of-2050"},
+  BPR:{t:"BCG press release on Scenarios 2050 (Apr 2026)",u:"https://www.bcg.com/press/20april2026-global-economy-four-different-directions-2050"},
+  BRS:{t:"BCG, AI Will Reshape More Jobs Than It Replaces (Apr 2026)",u:"https://www.bcg.com/publications/2026/ai-will-reshape-more-jobs-than-it-replaces"},
+  BAW:{t:"BCG, AI at Work 2026: Strategy Matters More Than Tools (Jun 2026)",u:"https://www.bcg.com/publications/2026/ai-at-work-why-strategy-matters-more-than-tools"},
+  IPR:{t:"IPPR, Transformed by AI (Mar 2024)",u:"https://www.ippr.org/media-office/up-to-8-million-uk-jobs-at-risk-from-ai-unless-government-acts-finds-ippr"},
+  TUC:{t:"TUC / University of Hertfordshire, Platformisation and the Pandemic (2021)",u:"https://www.computerweekly.com/news/252509210/Gig-economy-workforce-nearly-trebles-over-five-years"},
+  ONJ:{t:"ONS labour market release, Oct 2026 (via Trading Economics)",u:"https://tradingeconomics.com/united-kingdom/employment-change/news/593321"},
+  FCA:{t:"FCA, Financial Lives 2024 survey (May 2025)",u:"https://www.regulationtomorrow.com/2025/05/fca-financial-lives-2024-survey/"},
+  FCB:{t:"FCA Financial Lives 2024, further findings (PA via LBC)",u:"https://www.lbc.co.uk/article/5cda97b3fd5a4abbbdc856d1fa7946d5-rpTnG_2/"},
+  CPI:{t:"FCA Financial Lives 2022 and ONS inflation, Oct 2022 (PA via LBC)",u:"https://www.lbc.co.uk/article/8add13fc8d4d45979855837e00d6f17b-DWzM7m_2/"},
+  TML:{t:"The Mortgage Lender, self-employed borrower research (2023)",u:"https://thenegotiator.co.uk/news/self-employed-workers-fear-mortgage-rejection/"},
+  SSP:{t:"LITRG (Low Incomes Tax Reform Group), Statutory Sick Pay eligibility",u:"https://www.litrg.org.uk/tax-guides/employment/what-national-minimum-wage/will-i-get-paid-if-i-am-work-sick"},
+  IFS:{t:"IFS, Private pensions for the self-employed (Sep 2024)",u:"https://ifs.org.uk/sites/default/files/2024-09/Private-pensions-for-the-self-employed%20(1).pdf"},
+  EXP:{t:"Experian, first-time buyer data (2026)",u:"https://2025.financialreporter.co.uk/over-half-of-first-time-buyers-face-paying-mortgages-into-retirement.html"},
+  UKL:{t:"UK Finance later-life lending, Q2 2026 (via Mortgage Professional)",u:"https://www.mpamag.com/uk/premium/retired-and-borrowing-how-the-over-55s-market-is-going-mainstream/590359"}
+};
+const KEYS=Object.keys(SRC),num=k=>KEYS.indexOf(k)+1;
+
+/* Provisional V2 test set: five conditions, three settings. [name, short phrase, world sentence, cites, evidence label for cited fact] */
+const FORCES=[
+ {id:"ai",ab:"AI",label:"AI's role in work",q:"What role does AI play in work?",stages:[
+  ["Assists people","AI assists people at work","AI is a daily tool, as it already is for 74% of frontline staff, but jobs keep their shape.",["BAW"],"obs"],
+  ["Reshapes work","AI reshapes most jobs","Around half of jobs are redesigned around AI, the scale BCG models for the US within two to three years.",["BRS"],"proj"],
+  ["Automates routine work","AI automates most routine work","Agents absorb structured work. BCG puts 10–15% of US jobs at risk of elimination; IPPR flags back-office and entry roles first.",["BRS","IPR"],"proj"]]},
+ {id:"gains",ab:"GN",label:"Who benefits",q:"Who benefits from economic gains?",stages:[
+  ["A powerful few","a powerful few capture the gains","Gains concentrate. In BCG's most unequal scenario the richest 1% hold nearly half of global wealth.",["B50"],"proj"],
+  ["Unevenly shared","gains are unevenly shared","Output grows while displaced workers carry the cost, as in IPPR's central case: 4.4m UK jobs lost, GDP up 6.3%.",["IPR"],"proj"],
+  ["Widely distributed","gains are widely distributed","Workers are augmented rather than replaced: IPPR's route to a 13% GDP gain with no job losses.",["IPR"],"proj"]]},
+ {id:"live",ab:"LV",label:"How people earn",q:"How do people sustain a livelihood?",stages:[
+  ["Stable employment","most people hold one stable job","Most people hold one job. Side income stays marginal, as with the 3.7% of UK workers holding a second job today.",["ONJ"],"obs"],
+  ["Multiple income streams","income is assembled from several sources","Income is commonly assembled from several sources. Weekly platform work already reached 14.7% of working adults in 2021.",["TUC"],"obs"],
+  ["Less reliance on paid work","livelihoods rely less on paid work","Paid work matters less to many livelihoods. Income comes more from transfers, assets, family and occasional work.",[],null]]},
+ {id:"world",ab:"WO",label:"How connected",q:"How connected is the world?",stages:[
+  ["Globally integrated","the world stays globally integrated","Trade, migration and cross-border work stay open, with trade near its 2024 level of 57% of world GDP.",["BPR"],"obs"],
+  ["Regional networks","trade runs through regional networks","The world organises into regional networks. Trade and talent move within blocs more than between them.",["B50"],"proj"],
+  ["Fragmented and local","countries turn fragmented and local","Countries turn inward. In BCG's Battling Blocs scenario, trade falls to about 35% of world GDP.",["BPR"],"proj"]]},
+ {id:"resp",ab:"RS",label:"Society's response",q:"How does society respond to disruption?",stages:[
+  ["Reactive","society responds after disruption hits","Institutions respond after shocks land. Help arrives late and unevenly, though local fixes sometimes emerge.",[],null],
+  ["Uneven adaptation","society adapts unevenly","Some places, sectors and groups adapt well; others don't. Outcomes depend on where you live and how you earn.",[],null],
+  ["Coordinated resilience","society prepares through coordinated resilience","Governments, employers and communities prepare together. That can still be slow, costly or one-size-fits-all.",[],null]]}
+];
+
+const PRESETS=[
+ {id:"patch",name:"The Patchwork Economy",pal:"lime",mat:"studded",set:{ai:2,gains:1,live:2,world:2,resp:2},
+  lede:"AI reshapes jobs without removing them wholesale, but the gains stay near the top. People stitch income together from contracts, platforms and second jobs, and plan month to month."},
+ {id:"managed",name:"The Managed Transition",pal:"sky",mat:"glass",set:{ai:2,gains:3,live:1,world:1,resp:3},
+  lede:"AI reshapes most jobs, but gains are widely shared and institutions plan ahead. Work stays mostly salaried, careers become a series of supported resets, and the world stays open."},
+ {id:"fortress",name:"Fortress Economies",pal:"magenta",mat:"ribbon",set:{ai:1,gains:2,live:1,world:3,resp:1},
+  lede:"Rival blocs and shorter supply chains slow everything down. AI stays a helpful tool, most people keep one job, and institutions react to shocks rather than prepare for them."}
+];
+
+const PRESSURES=[
+ ["Climate disruption","Warming is about 1.3°C above pre-industrial levels today, and extreme weather is part of every world here. How hard it lands depends on society's response.",["B50"],"obs","Open decision: climate was its own condition in the previous version. Here it is a cross-cutting pressure while the condition set is tested."],
+ ["An older population, longer working lives","52% of new first-time buyers' mortgages already end at 65 or later, and lending to over-55s grew 13.4% in a year.",["EXP","UKL"],"obs",""]
+];
+
+const COHERENCE=[
+ {test:s=>s.live===3&&s.gains===1,text:"<b>Check this mix.</b> Less reliance on paid work while a powerful few hold the gains implies many people living on very little. It is plausible only with strong family or informal support. Treat it as a provocation."},
+ {test:s=>s.resp===3&&s.world===3,text:"<b>Check this mix.</b> Coordinated resilience in a fragmented world means coordination at national or local level, not global. Plausible, but costly."},
+ {test:s=>s.ai===1&&s.live===3,text:"<b>Check this mix.</b> Less reliance on paid work without much automation needs another cause, such as a large public scheme or an ageing workforce. The desk has no tension written for that cause yet."}
+];
+
+/* Tensions. score per setting: 1 easier, 0 neutral, -1 harder, null outcomes diverge. */
+const TENSIONS=[
+ {id:"buffers",type:"Significant consequence",title:"Buffers without a payday",pal:"peach",mat:"studded",
+  teaser:"When income arrives from many places, saving for a bad month loses its natural moment.",
+  mech:"<em>Because</em> most saving habits and products hang off a regular payday, <em>therefore</em> income assembled from several irregular sources makes buffers harder to build, <em>but</em> higher or more widely shared income can still give people room to save.",
+  sens:{
+   live:{level:"strong",impl:["A regular payday stays the anchor. Whether people build a buffer depends mainly on whether pay covers costs, not on timing.","Money lands on different days in different amounts. Even people who earn enough struggle to set a saving rhythm, and good weeks get spent covering bad ones.","Income comes more from transfers, family, assets or occasional work. Buffers depend on how reliable those sources are, not on effort."],score:[1,-1,null],
+    why:"<em>Because</em> saving tools assume a predictable payday, <em>therefore</em> moving between stable jobs and assembled income changes whether people can save on autopilot, <em>but</em> higher earners may cope either way.",
+    counter:"Several incomes can make people more resilient, not less: losing one client hurts less than losing your only job."},
+   gains:{level:"strong",impl:["Most households have little left over, so buffers stay thin whatever the income pattern.","Some people build healthy buffers while others in similar work cannot. The gap tracks ownership and family support more than earnings.","More households have a surplus to put aside, so the question shifts from capacity to habit and timing."],score:[-1,0,1],
+    why:"<em>Because</em> surplus income is what turns into savings, <em>therefore</em> spreading the gains changes how many people can build a buffer at all, <em>but</em> it does not by itself fix the timing problem of irregular income.",
+    counter:"Wider gains could simply raise spending and prices. Households may feel no more secure if costs rise alongside income."},
+   resp:{level:"strong",impl:["Help arrives after a shock, so households carry the first months alone and need bigger buffers of their own.","Support depends on where you live and how you earn. Platform and contract workers often fall through the gaps.","Shared buffers, such as guarantees or pooled schemes, absorb part of a shock, so personal savings carry less weight."],score:[-1,0,1],
+    why:"<em>Because</em> shared protection reduces how much each household must hold alone, <em>therefore</em> a more coordinated response lowers the buffer people need, <em>but</em> it can also weaken the urge to save.",
+    counter:"Coordinated schemes can be slow, rigid or exclude people who don't fit their rules, so personal buffers may still matter as much."},
+   ai:{level:"none",note:"AI's role matters here mostly through how people earn. With how people earn held fixed, no strong direct difference is established."},
+   world:{level:"none",note:"No strong difference established. A more fragmented world raises the stakes through prices, which the tension Shocks travel faster than help explores."}},
+  interacts:(s,f)=>s.live===2&&f!=="live"?"Interacting assumption: income is still assembled from several sources, so irregular timing remains a problem whatever this change does.":"",
+  invariant:"Whatever changes, irregular timing stays hard. A buffer only works if money can be set aside in good weeks before it is needed in bad ones.",
+  who:"Jade, 29 · courier, cleaner, market stall",
+  story:"Jade earns from a delivery app, two cleaning contracts and a weekend stall. Some weeks are good; others barely cover rent. Her bank's round-up saver relies on card spending she rarely does, and her emergency fund is, in practice, a buy-now-pay-later limit.",
+  evidence:[["obs","24% of UK adults had low financial resilience in May 2024; one in ten had no cash savings.",["FCA"],"UK · 2024"],
+   ["obs","21% of UK adults have under £1,000 to draw on in an emergency; 8% are usually overdrawn by payday.",["FCB"],"UK · 2024"],
+   ["obs","Weekly platform work rose from 5.8% of working adults in 2016 to 14.7% in 2021.",["TUC"],"England and Wales · 2021"],
+   ["obs","38% of self-employed people surveyed said a mortgage application had been rejected because their income was too volatile.",["TML"],"UK · 2023 survey"],
+   ["proj","In BCG's Digital Darwinism scenario, gig-style and short-term contract work expands as AI displaces routine knowledge work.",["BPR"],"Global · 2050 scenario"]],
+  dilemma:"Should providers smooth irregular income for customers, or would that hide how precarious the income really is?",
+  leans:[["Smooth it","Turning irregular income into a steady flow lets people plan, save and borrow like salaried customers.","Smoothing can mask risk. When income falls for good, the customer and the provider both find out late."],
+   ["Make it visible","Show irregularity clearly and help people set money aside in good weeks, without pretending it is a salary.","Visibility alone doesn't help someone with no surplus. It can just make the anxiety sharper."]],
+  neither:"Both views assume the provider is the right actor. A third view: the fix sits with platforms, employers or the state, and providers should not carry it."},
+
+ {id:"protection",type:"Strategic contradiction",title:"Protection that assumes an employer",pal:"peri",mat:"glass",
+  teaser:"Sick pay, pensions and income protection are built around a job. What happens when fewer people have one?",
+  mech:"<em>Because</em> much of today's protection is delivered through employment, <em>therefore</em> a shift away from single employers leaves more people uncovered by default, <em>but</em> a coordinated response or new providers could rebuild protection around the person instead of the job.",
+  sens:{
+   live:{level:"strong",impl:["Employer sick pay, workplace pensions and group cover still reach most people. The gaps stay at the edges.","Each income stream carries a slice of protection, or none. People must assemble cover themselves, and many don't.","With less paid work, protection tied to a job reaches few people. Security rests on the state, family or assets."],score:[1,-1,-1],
+    why:"<em>Because</em> protection is attached to employment contracts, <em>therefore</em> fewer stable jobs means fewer people covered by default, <em>but</em> people with several incomes might buy cover more deliberately.",
+    counter:"Many people already ignore the employer cover they have. Losing it may change less than it seems."},
+   resp:{level:"strong",impl:["Gaps are noticed only after people fall through them, usually during a crisis.","Some sectors and platforms offer cover; others don't. Protection depends on who you work for.","Portable protection follows the person between jobs and platforms, though it may cost more or offer less choice."],score:[-1,0,1],
+    why:"<em>Because</em> society can attach protection to people instead of jobs, <em>therefore</em> a coordinated response can close gaps, <em>but</em> portable schemes need funding and may level cover down.",
+    counter:"Collective schemes concentrate risk in one place and can be cut by a change of policy. Employer and private cover spread that risk."},
+   ai:{level:"strong",impl:["Jobs keep their shape, so employer-based protection mostly holds.","Roles change faster than benefit schemes. People move between roles and employers more often and lose continuity of cover.","Fewer long-tenure roles in routine work means fewer people stay inside an employer scheme long enough to benefit."],score:[1,0,-1],
+    why:"<em>Because</em> AI changes how long people stay in one role, <em>therefore</em> faster reshaping breaks the continuity employer schemes rely on, <em>but</em> employers competing for scarce skills may offer richer benefits.",
+    counter:"Automation could pay for better protection if its gains are shared, so the outcome may depend more on distribution than on AI itself."},
+   gains:{level:"limited",impl:["Few can afford private cover, so employer schemes remain most people's only protection.","People with savings or family support buy cover; others rely on the state.","More people can afford private cover, but take-up still depends on the defaults that come with a job."],score:[0,0,0],
+    note:"Limited difference. Who benefits changes who can afford private cover, but not the link between protection and employment.",
+    why:"<em>Because</em> affordability shapes private cover, <em>therefore</em> wider gains help at the margin, <em>but</em> the structural link between protection and a job stays the same.",
+    counter:"If gains are widely shared through the state, they may arrive as protection itself, which would be a bigger change than this suggests."},
+   world:{level:"none",note:"No strong difference established for this need. Cross-border work could add gaps, but the evidence here does not test it."}},
+  interacts:(s,f)=>s.live===1&&f!=="live"?"Interacting assumption: most people still hold one stable job, so employer cover already reaches them and this change matters mainly at the edges.":"",
+  invariant:"People still need cover for the same risks: illness, loss of income and old age. What changes is who provides it and whether it follows them.",
+  who:"Marcus, 36 · designer, tutor, courier",
+  story:"Marcus works two days on a design contract and the rest through a tutoring platform and deliveries. When a back injury stops the deliveries for six weeks, no sick pay arrives. His income protection lapsed when he left his last permanent job, and nothing has gone into his pension for three years.",
+  evidence:[["obs","Self-employed people are not entitled to Statutory Sick Pay; some can claim new-style Employment and Support Allowance instead.",["SSP"],"UK · current rules"],
+   ["obs","About 22% of self-employed people earning over £10,000 saved into a private pension in 2022, against about 80% of employees. In 1998 it was about 60%.",["IFS"],"UK · 2022"],
+   ["obs","About 1.29m people held second jobs in 2026, 3.7% of employment.",["ONJ"],"UK · 2026"],
+   ["proj","BCG models 50–55% of US jobs being reshaped by AI within two to three years.",["BRS"],"US · to about 2029"]],
+  dilemma:"If protection moves away from employers, should providers build portable cover for individuals, or back collective schemes that make individual products less necessary?",
+  leans:[["Portable cover","Build protection that follows the person across jobs, platforms and gaps, and let them choose it.","Individual cover is often unaffordable for those who need it most, and take-up is low without a default."],
+   ["Collective schemes","Back defaults that reach everyone and pool risk, even if they leave less room for products.","Collective schemes can be slow to adapt and offer one-size cover that suits few people well."]],
+  neither:"Both views assume protection is about income. A third view: the bigger gap is advice and confidence, and better products alone won't close it."},
+
+ {id:"shocks",type:"Unexpected connection",title:"Shocks travel faster than help",pal:"steel",mat:"metal",
+  teaser:"In a disconnected world, a crisis far away can empty a household's buffer through the price of food and energy.",
+  mech:"<em>Because</em> households feel the wider world mainly through prices, <em>therefore</em> a more fragmented world makes sudden rises in food and energy costs more likely, <em>but</em> how hard they land depends on how quickly society responds.",
+  sens:{
+   world:{level:"strong",impl:["Supply chains are long but diversified. Price shocks still happen, but trade spreads and cushions them.","Supply runs through regional networks. Shocks from far away are rarer but harder to route around when they come.","Trade retreats and supply chains shorten. Prices for essentials swing more, and every swing hits buffers directly."],score:[1,0,-1],
+    why:"<em>Because</em> a fragmented world has fewer alternative suppliers, <em>therefore</em> shocks to essentials become larger and more frequent, <em>but</em> shorter supply chains can also make some prices steadier.",
+    counter:"Local supply can be more resilient: fewer long chains to break and more control over essentials."},
+   resp:{level:"strong",impl:["Support arrives months after prices spike, so households absorb the first hit themselves.","Some groups get help quickly; others, often renters and the self-employed, wait or miss out.","Price caps, targeted payments or shared reserves soften shocks quickly, though they cost public money."],score:[-1,0,1],
+    why:"<em>Because</em> the timing of support decides who falls into arrears, <em>therefore</em> a faster collective response protects buffers, <em>but</em> broad support is costly and can be poorly targeted.",
+    counter:"Quick, broad support can delay adjustment and leave a bill for later, through taxes or inflation."},
+   gains:{level:"strong",impl:["Few households have slack, so each price shock pushes many into arrears.","Price shocks widen the gap between households with savings and those without.","More households can absorb a spike, though the poorest still feel it most."],score:[-1,0,1],
+    why:"<em>Because</em> slack in household budgets absorbs shocks, <em>therefore</em> wider gains mean fewer households tip into difficulty, <em>but</em> rising incomes can also feed higher prices.",
+    counter:"A large enough price shock hits even comfortable households. Wider gains reduce exposure but don't remove it."},
+   live:{level:"limited",impl:["Steady pay and employer support help households ride out a price spike.","People can pick up extra work when prices rise, but have no employer to absorb the shock.","Households depend on how quickly transfers and other income adjust to prices."],score:[null,null,null],
+    note:"Plausible outcomes diverge. Several incomes add flexibility but remove employer support, and the evidence here doesn't say which wins.",
+    why:"<em>Because</em> how people earn shapes both flexibility and support, <em>therefore</em> changing it moves exposure in two directions at once, <em>but</em> the net effect is unclear.",
+    counter:"Flexibility may matter more than support: people who can add work quickly often recover faster than those waiting for help."},
+   ai:{level:"none",note:"No strong difference established for how price shocks reach households."}},
+  interacts:(s,f)=>s.world===1&&f!=="world"?"Interacting assumption: the world is still globally integrated, so shocks are smaller and this change makes less difference than it would in a fragmented world.":"",
+  invariant:"Essentials stay essential. Food, energy and housing costs reach every household, so a sudden rise always tests buffers first.",
+  who:"Leah, 39 · nurse, renting",
+  story:"Leah rents a flat with electric heating. When a conflict overseas sends energy prices up, her bill doubles over one winter. Her savings go on heating, her credit card covers the gap, and the support she qualifies for arrives in instalments months later.",
+  evidence:[["obs","In September 2022 UK inflation reached 10.1%, with food prices up 14.5% and housing and utilities up 20.2% on a year earlier.",["CPI"],"UK · 2022"],
+   ["obs","In 2022, 12.9 million UK adults (24%) had low financial resilience as living costs rose.",["CPI"],"UK · 2022"],
+   ["proj","In BCG's Battling Blocs scenario, trade falls from 57% to about 35% of world GDP and growth slows to about 1.8% a year.",["BPR"],"Global · 2050 scenario"]],
+  dilemma:"When essential costs spike, should providers absorb part of the shock through flexibility and forbearance, or keep products simple and leave support to the state?",
+  leans:[["Providers flex","Providers see the strain first and can act fastest, through payment holidays, flexible terms and early help.","Forbearance at scale stores up debt and shifts risk onto other customers."],
+   ["Leave it to the state","Shocks this size need public money and broad reach, not product features.","State support is often slow and blunt, and customers fall behind in the gap."]],
+  neither:"Both views treat the shock as temporary. A third view: in a fragmented world spikes recur, so the real question is permanent resilience, not emergency support."}
+];
+
+const STARTERS=["I used to assume…","This changes if…","What stays true is…","A question worth testing is…","A dilemma for us is…"];
+const PO_PROMPTS=["What customer need is this initiative trying to satisfy? Would that need persist in this world?","What does it assume about income, work, access, trust or institutions?","What might break, or become more valuable, if one condition changed?","Who might benefit, and who could be excluded?","What capability or research question stays useful across contrasting futures?"];
+
+/* ---------- Generated specimens (canvas) ---------- */
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function blob(ctx,cx,cy,R,r,amp){
+  const k=[2,3,4,5].map(n=>({n,a:(r()*amp)/n*2,p:r()*6.283}));
+  ctx.beginPath();
+  for(let i=0;i<=120;i++){const t=i/120*6.283;let m=1;k.forEach(o=>m+=o.a*Math.sin(o.n*t+o.p));const x=cx+Math.cos(t)*R*m,y=cy+Math.sin(t)*R*m;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.closePath();
+}
+function sphere(ctx,x,y,rad,light,mid,dark){
+  const g=ctx.createRadialGradient(x-rad*.35,y-rad*.4,rad*.05,x,y,rad);
+  g.addColorStop(0,light);g.addColorStop(.55,mid);g.addColorStop(1,dark);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,rad,0,6.283);ctx.fill();
+}
+const DRAW={
+  glass(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.27;ctx.save();ctx.translate(w/2,h/2);ctx.rotate(-.45+r()*.3);ctx.scale(.72,1.18);
+    blob(ctx,0,0,R,r,.12);ctx.save();ctx.clip();
+    const base=ctx.createLinearGradient(-R,-R,R,R);base.addColorStop(0,"rgba(255,255,255,.95)");base.addColorStop(1,pal[2]);
+    ctx.fillStyle=base;ctx.fillRect(-R*2,-R*2,R*4,R*4);
+    ctx.filter="blur("+Math.round(R*.14)+"px)";
+    const cols=["rgba(255,90,140,.55)","rgba(60,110,255,.6)",pal[0]+"aa","rgba(120,220,255,.5)","rgba(190,80,255,.45)"];
+    for(let i=0;i<7;i++){ctx.strokeStyle=cols[i%cols.length];ctx.lineWidth=R*(.12+r()*.25);ctx.beginPath();
+      ctx.moveTo(-R*1.2,(r()-.5)*R*2);ctx.bezierCurveTo(-R*.4,(r()-.5)*R*2.4,R*.4,(r()-.5)*R*2.4,R*1.2,(r()-.5)*R*2);ctx.stroke();}
+    ctx.filter="none";
+    const hl=ctx.createRadialGradient(-R*.4,-R*.55,0,-R*.4,-R*.55,R*.9);hl.addColorStop(0,"rgba(255,255,255,.85)");hl.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=hl;ctx.fillRect(-R*2,-R*2,R*4,R*4);ctx.restore();
+    ctx.lineWidth=R*.05;ctx.strokeStyle="rgba(255,255,255,.75)";ctx.stroke();ctx.restore();
+  },
+  pearls(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3,pts=[];
+    for(let i=0;i<70;i++){const t=r()*6.283,d=Math.sqrt(r())*R*(.78+.22*Math.sin(3*t+1));pts.push({x:w/2+Math.cos(t)*d,y:h/2+Math.sin(t)*d*.85,s:R*(.13+r()*.13),hot:r()<.12});}
+    pts.sort((a,b)=>a.y-b.y);
+    pts.forEach(p=>{sphere(ctx,p.x,p.y,p.s,"#ffffff",p.hot?"#f3a3b8":pal[2],p.hot?"#d0306a":"#e9b5a8");
+      ctx.fillStyle="rgba(255,255,255,.35)";for(let j=0;j<10;j++){const a=r()*6.283,dd=r()*p.s*.8;ctx.beginPath();ctx.arc(p.x+Math.cos(a)*dd,p.y+Math.sin(a)*dd,p.s*.06,0,6.283);ctx.fill();}});
+  },
+  studded(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3;ctx.save();ctx.translate(w/2,h/2);ctx.rotate(r()*.8-.4);
+    blob(ctx,0,0,R,r,.32);
+    const g=ctx.createRadialGradient(-R*.35,-R*.4,R*.1,0,0,R*1.25);g.addColorStop(0,"#ffffff");g.addColorStop(.6,"#dcdce2");g.addColorStop(1,"#9c9ca6");
+    ctx.fillStyle=g;ctx.fill();ctx.clip();
+    const cols=["#6f6f52","#c8ac52","#2c5bd2","#8c8c90","#d8c174","#3a3a3a"];
+    for(let i=0;i<340;i++){const x=(r()-.5)*R*2.6,y=(r()-.5)*R*2.6,s=R*(.018+r()*.022);
+      sphere(ctx,x,y,s,"#ffffff",cols[i%cols.length],"#222");}
+    ctx.restore();
+  },
+  ribbon(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3,L=R*.2;
+    const dark="#3b2a8f",mid="#5a46c8",lite="#8d7ce6";
+    for(let i=0;i<7;i++){
+      const p=[0,1,2,3].map(()=>[w/2+(r()-.5)*R*2.2,h/2+(r()-.5)*R*2.2]);
+      const path=()=>{ctx.beginPath();ctx.moveTo(...p[0]);ctx.bezierCurveTo(...p[1],...p[2],...p[3]);};
+      ctx.lineCap="round";
+      path();ctx.strokeStyle=dark;ctx.lineWidth=L;ctx.stroke();
+      ctx.save();ctx.translate(-L*.12,-L*.14);path();ctx.strokeStyle=mid;ctx.lineWidth=L*.7;ctx.stroke();
+      ctx.translate(-L*.08,-L*.1);path();ctx.strokeStyle=lite;ctx.lineWidth=L*.25;ctx.globalAlpha=.6;ctx.stroke();ctx.restore();ctx.globalAlpha=1;
+    }
+  },
+  branch(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.34;
+    const segs=[];
+    const grow=(x,y,a,len,wd,d)=>{const x2=x+Math.cos(a)*len,y2=y+Math.sin(a)*len;segs.push([x,y,x2,y2,wd]);
+      if(d<=0)return;const n=r()<.5?2:3;for(let i=0;i<n;i++)grow(x2,y2,a+(r()-.5)*1.3,len*(.6+r()*.2),wd*.78,d-1);};
+    grow(w/2-R*.2,h/2+R*.95,-1.35-r()*.3,R*.62,R*.13,3);
+    ctx.lineCap="round";
+    const pass=(col,off,scale)=>{ctx.strokeStyle=col;segs.forEach(s=>{ctx.lineWidth=s[4]*scale;ctx.beginPath();ctx.moveTo(s[0]+off,s[1]+off);ctx.lineTo(s[2]+off,s[3]+off);ctx.stroke();});};
+    pass("#8a6a22",R*.02,1);pass("#c9a64c",0,.82);pass("#f1dc9c",-R*.018,.32);pass("rgba(255,255,255,.7)",-R*.025,.1);
+  },
+  metal(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3,H=R*.62;ctx.save();ctx.translate(w/2,h/2+R*.1);ctx.rotate(-.32+r()*.12);
+    const ry=R*.42;
+    const side=ctx.createLinearGradient(-R,0,R,0);side.addColorStop(0,"#1c1c1e");side.addColorStop(.45,"#4a4a4e");side.addColorStop(.6,"#2a2a2d");side.addColorStop(1,"#121214");
+    ctx.beginPath();ctx.ellipse(0,0,R,ry,0,0,Math.PI);ctx.lineTo(-R,-H);ctx.ellipse(0,-H,R,ry,0,Math.PI,0,true);ctx.closePath();ctx.fillStyle=side;ctx.fill();
+    ctx.save();ctx.clip();
+    for(let row=0;row<7;row++)for(let c=-16;c<=16;c++){const t=c/16;const x=t*R*.97;const ybase=Math.sqrt(1-t*t)*ry;const y=-H*.12-row*H*.12+ybase;
+      const s=R*.022*Math.sqrt(1-t*t);if(s<.6)continue;ctx.fillStyle="#08080a";ctx.beginPath();ctx.ellipse(x,y,s,s*1.1,0,0,6.283);ctx.fill();}
+    ctx.restore();
+    const rim=ctx.createLinearGradient(-R,-H-ry,R,-H+ry);rim.addColorStop(0,"#f4f4f5");rim.addColorStop(.5,"#9c9da1");rim.addColorStop(1,"#d9dadc");
+    ctx.beginPath();ctx.ellipse(0,-H,R,ry,0,0,6.283);ctx.fillStyle=rim;ctx.fill();
+    const top=ctx.createLinearGradient(-R,-H,R,-H);top.addColorStop(0,"#c8c9cc");top.addColorStop(.35,"#ffffff");top.addColorStop(.7,"#a4a5a9");top.addColorStop(1,"#e6e7e9");
+    ctx.beginPath();ctx.ellipse(0,-H,R*.9,ry*.88,0,0,6.283);ctx.fillStyle=top;ctx.fill();ctx.restore();
+  }
+};
+function paintSpecimen(canvas){
+  const pal=PAL[canvas.dataset.pal],mat=canvas.dataset.mat,seed=+canvas.dataset.seed;
+  const box=canvas.getBoundingClientRect();if(!box.width)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(box.width*dpr);canvas.height=Math.round(box.height*dpr);
+  const ctx=canvas.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,box.width,box.height);
+  const w=box.width,h=box.height;
+  const sh=ctx.createRadialGradient(w/2,h*.86,0,w/2,h*.86,w*.28);sh.addColorStop(0,"rgba(0,0,0,.14)");sh.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=sh;ctx.fillRect(0,0,w,h);
+  try{DRAW[mat](ctx,w,h,rng(seed),pal);}catch(e){}
+}
+function paintAll(){document.querySelectorAll("canvas[data-mat]").forEach(paintSpecimen);}
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(paintAll,150);});
+
+
+
+
+/* ---------- State ---------- */
+const S={world:{...PRESETS[0].set},tension:null,exp:{force:null,to:null,predict:null,shown:false},expNote:"",lean:null};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const plain=s=>String(s).replace(/<[^>]+>/g,"");
+const cites=a=>(a||[]).map(k=>`<a class="cite" href="${SRC[k].u}" target="_blank" rel="noopener" title="${esc(SRC[k].t)}">[${num(k)}]</a>`).join(" ");
+const EVL={obs:"Observed evidence",proj:"Published projection",assum:"Scenario assumption",hyp:"Strategic hypothesis"};
+const ev=k=>`<span class="ev ${k}">${EVL[k]}</span>`;
+const F=id=>FORCES.find(f=>f.id===id);
+const stageName=(id,v)=>F(id).stages[v-1][0];
+const codeOf=w=>FORCES.map(f=>f.ab+w[f.id]).join(".");
+const T=()=>TENSIONS.find(t=>t.id===S.tension);
+const arrow=`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12L12 4M5.5 4H12v6.5"/></svg>`;
+
+function presetFor(w){
+  const exact=PRESETS.find(p=>FORCES.every(f=>p.set[f.id]===w[f.id]));
+  if(exact)return {p:exact,exact:true};
+  const near=PRESETS.map(p=>({p,d:FORCES.reduce((a,f)=>a+(p.set[f.id]-w[f.id])**2,0)})).sort((a,b)=>a.d-b.d)[0];
+  return {p:near.p,exact:false};
+}
+function mixLede(w){
+  const parts=FORCES.map(f=>f.stages[w[f.id]-1][1]);
+  const s=`In this mix, ${parts.slice(0,4).join(", ")}, and ${parts[4]}.`;
+  return s;
+}
+
+/* ---------- Step 1: world ---------- */
+function buildControls(){
+  $("#presets").innerHTML=PRESETS.map(p=>{const c=PAL[p.pal];return `<button class="preset" type="button" data-p="${p.id}" style="--c1:${c[0]};--c2:${c[1]}" aria-pressed="false"><i></i>${p.name}</button>`}).join("");
+  $("#presets").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(!b)return;setWorld({...PRESETS.find(p=>p.id===b.dataset.p).set});});
+  $("#qs").innerHTML=FORCES.map(f=>`<fieldset class="q"><legend>${f.q}</legend><div class="seg">${f.stages.map((s,i)=>`<input type="radio" name="w-${f.id}" id="w-${f.id}-${i+1}" value="${i+1}"><label for="w-${f.id}-${i+1}">${s[0]}</label>`).join("")}</div></fieldset>`).join("");
+  FORCES.forEach(f=>document.querySelectorAll(`input[name="w-${f.id}"]`).forEach(r=>r.addEventListener("change",e=>{const w={...S.world};w[f.id]=+e.target.value;setWorld(w);})));
+  $("#surpriseBtn").addEventListener("click",()=>{const w={};FORCES.forEach(f=>w[f.id]=1+Math.floor(Math.random()*3));setWorld(w);});
+}
+function syncControls(){
+  FORCES.forEach(f=>{const r=document.getElementById(`w-${f.id}-${S.world[f.id]}`);if(r)r.checked=true;});
+  const {p,exact}=presetFor(S.world);
+  document.querySelectorAll(".preset").forEach(b=>b.setAttribute("aria-pressed",String(exact&&b.dataset.p===p.id)));
+}
+function setWorld(w){
+  const changed=FORCES.some(f=>w[f.id]!==S.world[f.id]);
+  S.world=w;
+  if(changed&&(S.exp.force||S.exp.shown)){S.exp={force:null,to:null,predict:null,shown:false};S.expNote="Your world changed, so the comparison restarted from the new world.";}
+  renderAll();
+}
+function windowHTML(pal,mat,seed,tab,code){
+  const c=PAL[pal];
+  return `<div class="window" style="--c1:${c[0]};--c2:${c[1]}"><span class="tab">${tab}</span><div class="float"><canvas data-pal="${pal}" data-mat="${mat}" data-seed="${seed}" aria-hidden="true"></canvas></div><span class="code">${code}</span></div>`;
+}
+function renderWorld(){
+  const w=S.world,{p,exact}=presetFor(w),code=codeOf(w);
+  const notes=COHERENCE.filter(c=>c.test(w)).map(c=>`<div class="note">${c.text}</div>`).join("");
+  $("#world").innerHTML=`
+   ${windowHTML(exact?p.pal:"peri",exact?p.mat:"glass",hash(code),"2050",code)}
+   <div class="world-body">
+     <span class="label">${exact?"Starter world":"Your mix · closest to "+p.name}</span>
+     <h3>${exact?p.name:"Your mix"}</h3>
+     <p class="lede">${exact?p.lede:mixLede(w)}</p>
+     ${notes}
+     <div><span class="label" style="display:block;margin-bottom:10px">Defining assumptions ${ev("assum")}</span>
+     <ul class="assume">${FORCES.map(f=>{const s=f.stages[w[f.id]-1];return `<li><span class="k">${s[0]}<small>${f.label}</small></span><span>${s[2]} ${s[3].length?cites(s[3])+" "+ev(s[4]):""}</span></li>`}).join("")}</ul></div>
+     <div class="pressures"><span class="label">In every world</span>${PRESSURES.map(x=>`<div><b>${x[0]}.</b> ${x[1]} ${cites(x[2])} ${ev(x[3])}${x[4]?`<div class="muted" style="font-size:12px;margin-top:4px">${x[4]}</div>`:""}</div>`).join("")}</div>
+   </div>`;
+}
+
+/* ---------- Step 2: doors ---------- */
+function pressureOf(t,w){
+  const sc=Object.entries(t.sens).filter(([k,v])=>v.level==="strong").map(([k,v])=>v.score[w[k]-1]).filter(x=>x!==null);
+  const a=sc.reduce((x,y)=>x+y,0)/(sc.length||1);
+  return a<=-0.3?["pressure","Under pressure in this world"]:a>=0.3?["holding","Holding up in this world"]:["mixed","Mixed in this world"];
+}
+function renderDoors(){
+  $("#doors").innerHTML=TENSIONS.map(t=>{const [cls,txt]=pressureOf(t,S.world);return `
+   <button class="door" type="button" data-t="${t.id}" aria-pressed="${S.tension===t.id}">
+     ${windowHTML(t.pal,t.mat,hash(t.id),t.type.toUpperCase(),"NEED.SEC")}
+     <div class="door-body">
+       <h3>${t.title}</h3>
+       <p class="teaser">${t.teaser}</p>
+       <span class="status ${cls}"><i></i>${txt}</span>
+       <span class="open"><b aria-hidden="true">${S.tension===t.id?"✓":"↗"}</b>${S.tension===t.id?"Exploring":"Explore this tension"}</span>
+     </div>
+   </button>`}).join("");
+}
+
+/* ---------- Step 3: investigate ---------- */
+function renderInv(){
+  const t=T();
+  if(!t){$("#inv").innerHTML=`<div class="empty">Open a tension in step 2 to see how it works in your world.</div>`;return;}
+  const w=S.world;
+  const lines=Object.entries(t.sens).filter(([k,v])=>v.level!=="none").map(([k,v])=>`<li><b>${stageName(k,w[k])} · ${F(k).label}</b><span>${v.impl[w[k]-1]}</span></li>`).join("");
+  $("#inv").innerHTML=`
+   <div class="inv">
+     <div class="card pad" style="gap:20px">
+       <div class="block"><h4>${t.type} · ${t.title}</h4><p class="mech">${t.mech}</p><div>${ev("hyp")}</div></div>
+       <div class="block"><h4>What it looks like in your world</h4><ul class="here">${lines}</ul></div>
+     </div>
+     <div class="card pad" style="gap:18px">
+       <div class="story"><span class="who">${t.who} · illustrative</span>${t.story}</div>
+       <div class="block"><h4>Evidence today</h4><ul class="evlist">${t.evidence.map(e=>`<li><span>${ev(e[0])} <span class="muted" style="font-size:12px">${e[3]}</span></span><span>${e[1]} ${cites(e[2])}</span></li>`).join("")}</ul></div>
+     </div>
+   </div>`;
+}
+
+/* ---------- Step 4: change one thing ---------- */
+const PRED=[["easier","Easier"],["harder","Harder"],["same","Little change"],["unsure","Hard to say"]];
+function verdictFor(t,f,from,to){
+  const s=t.sens[f];
+  if(s.level==="none")return {k:"same",txt:"No strong difference established",note:s.note};
+  const a=s.score[from-1],b=s.score[to-1];
+  if(a===null||b===null)return {k:"unsure",txt:"Plausible outcomes diverge",note:s.note||""};
+  if(b>a)return {k:"easier",txt:"Security plausibly gets easier",note:s.level==="limited"?s.note:""};
+  if(b<a)return {k:"harder",txt:"Security plausibly gets harder",note:s.level==="limited"?s.note:""};
+  return {k:"same",txt:s.level==="limited"?"Limited difference":"Little change",note:s.note||""};
+}
+function renderExp(){
+  const t=T();
+  if(!t){$("#exp").innerHTML=`<div class="empty">Open a tension first. The experiment compares the same need before and after one change.</div>`;return;}
+  const E=S.exp,w=S.world,f=E.force?F(E.force):null;
+  let html=`<div class="card pad" style="gap:18px">
+    ${S.expNote?`<div class="note">${S.expNote}</div>`:""}
+    <div class="exp-steps">
+      <div class="mini"><span class="t">a. Pick one condition</span>
+        <div class="opts">${FORCES.map(x=>`<button class="opt" type="button" data-force="${x.id}" aria-pressed="${E.force===x.id}">${x.label}</button>`).join("")}</div>
+        <span class="muted" style="font-size:12.5px">Some conditions matter more for this need than others. Finding one that doesn't is a result too.</span></div>
+      <div class="mini"><span class="t">b. Change it to</span>
+        <div class="opts">${f?f.stages.map((s,i)=>`<button class="opt" type="button" data-to="${i+1}" aria-pressed="${E.to===i+1}" ${w[f.id]===i+1?"disabled":""}>${s[0]}${w[f.id]===i+1?" (now)":""}</button>`).join(""):`<span class="muted" style="font-size:13px">Pick a condition first.</span>`}</div></div>
+      <div class="mini"><span class="t">c. Predict: for this need, security gets…</span>
+        <div class="opts">${PRED.map(p=>`<button class="opt" type="button" data-pred="${p[0]}" aria-pressed="${E.predict===p[0]}" ${E.to?"":"disabled"}>${p[1]}</button>`).join("")}</div>
+        <span class="muted" style="font-size:12.5px">Optional, but it makes the comparison more interesting.</span></div>
+    </div>
+    <div class="row-actions"><button class="go" id="cmpBtn" type="button" ${E.force&&E.to?"":"disabled"}>Compare <span class="arr" aria-hidden="true">${arrow}</span></button></div>
+  </div>`;
+  if(E.shown&&f&&E.to){
+    const from=w[f.id],to=E.to,s=t.sens[f.id],V=verdictFor(t,f.id,from,to);
+    const after={...w,[f.id]:to};
+    const primary=Object.entries(t.sens).find(([k,v])=>v.level==="strong");
+    const implOf=(state)=>s.level==="none"?`<span class="muted" style="font-size:12px;display:block">Unchanged</span>${t.sens[primary[0]].impl[state[primary[0]]-1]}`:s.impl[state[f.id]-1];
+    const conds=(state,mark)=>`<ul class="conds">${FORCES.map(x=>`<li class="${mark&&x.id===f.id?"changed":""}"><span>${x.label}</span><span>${mark&&x.id===f.id?"Changed → ":""}${stageName(x.id,state[x.id])}</span></li>`).join("")}</ul>`;
+    const pal=PAL[t.pal];
+    const predTxt=E.predict?PRED.find(p=>p[0]===E.predict)[1]:null;
+    const match=!E.predict?"":E.predict===V.k?"Same as the desk's hypothesis. What would make it wrong?":V.k==="unsure"?"The desk can't call this one either.":E.predict==="unsure"?"You held back; the desk takes a view, but it's contestable.":"Different from the desk's hypothesis. That disagreement is worth taking to the workshop.";
+    const inter=t.interacts?t.interacts(w,f.id):"";
+    html+=`<div class="card pad compare fresh" id="cmp" style="--c2:${pal[1]}">
+      <div class="ba">
+        <div class="side"><span class="t">Before · your world</span>${conds(w,false)}<p class="impl">${implOf(w)}</p></div>
+        <div class="side after"><span class="t">After · one change</span>${conds(after,true)}<p class="impl">${implOf(after)}</p></div>
+      </div>
+      <div class="verdict"><b>${V.txt}</b>${ev("hyp")}${predTxt?`<span class="pred">You predicted: ${predTxt}. ${match}</span>`:""}</div>
+      ${V.note&&s.level!=="none"?`<p class="muted" style="font-size:13.5px">${V.note}</p>`:""}
+      <div class="block"><h4>Why this could matter</h4><p class="mech" style="font-size:17.5px">${s.level==="none"?s.note:s.why}</p>${inter?`<p class="muted" style="font-size:13.5px">${inter}</p>`:""}</div>
+      <div class="cols2">
+        <div class="invariant"><span class="label" style="color:inherit">What stays the same</span><p style="margin-top:6px">${t.invariant}</p></div>
+        <div class="counter"><span class="label" style="color:var(--hyp-ink)">Another way to see it</span><p style="margin-top:6px">${s.level==="none"?"Effects may still arrive indirectly, through how people earn or how society responds. Try changing one of those instead.":s.counter}</p></div>
+      </div>
+      <p class="muted" style="font-size:12.5px">Evidence status: both worlds are ${EVL.assum.toLowerCase()}s you chose; the difference is a ${EVL.hyp.toLowerCase()}. Related evidence for this tension: ${t.evidence.map(e=>cites(e[2])).join(" ")}</p>
+      <label for="reflect" style="font-weight:700;font-size:14.5px">What assumption does this make you reconsider? <span class="muted" style="font-weight:400">(optional)</span></label>
+      <textarea id="reflect" rows="2"></textarea>
+      <div class="row-actions"><button class="ghost" id="adoptBtn" type="button">Make this my world</button><button class="ghost" id="backBtn" type="button">Back to original world</button></div>
+    </div>`;
+  }
+  $("#exp").innerHTML=html;
+  const r=$("#reflect");if(r){r.value=S.reflect||"";r.addEventListener("input",e=>{S.reflect=e.target.value;renderTake();});}
+}
+$("#exp").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b||b.disabled)return;const E=S.exp;
+  if(b.dataset.force){S.exp={force:b.dataset.force,to:null,predict:null,shown:false};S.expNote="";renderExp();renderTake();return;}
+  if(b.dataset.to){E.to=+b.dataset.to;E.shown=false;renderExp();renderTake();return;}
+  if(b.dataset.pred){E.predict=E.predict===b.dataset.pred?null:b.dataset.pred;E.shown=false;renderExp();return;}
+  if(b.id==="cmpBtn"){E.shown=true;S.reflect="";renderExp();renderTake();requestAnimationFrame(()=>{const c=$("#cmp");if(c)c.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});});return;}
+  if(b.id==="adoptBtn"){const w={...S.world,[E.force]:E.to};const keep={f:E.force,to:E.to};S.adopted=keep;S.world=w;S.exp={force:null,to:null,predict:null,shown:false};S.expNote=`Done. ${F(keep.f).label} is now “${stageName(keep.f,keep.to)}”. Compare another change from here.`;renderAll();return;}
+  if(b.id==="backBtn"){S.exp={force:null,to:null,predict:null,shown:false};S.expNote="";renderExp();renderTake();return;}
+});
+
+/* ---------- Step 5: challenge ---------- */
+function renderCh(){
+  const t=T();
+  if(!t){$("#ch").innerHTML=`<div class="empty">Open a tension first to see its dilemma.</div>`;return;}
+  const L=S.lean;
+  const opts=[...t.leans.map((l,i)=>[String(i),l[0],l[1]]),["n","It depends","Neither answer fits, or both do."]];
+  let reveal="";
+  if(L!==null){
+    reveal=L==="n"?`<div class="counter fresh"><span class="label" style="color:var(--hyp-ink)">A third way to see it</span><p style="margin-top:6px">${t.neither}</p></div>`
+      :`<div class="counter fresh"><span class="label" style="color:var(--hyp-ink)">The strongest argument against your lean</span><p style="margin-top:6px">${t.leans[+L][2]}</p></div>`;
+  }
+  $("#ch").innerHTML=`
+   <div class="card pad" style="gap:16px">
+     <p class="dilemma">${t.dilemma}</p>
+     <div class="leans">${opts.map(o=>`<button class="lean" type="button" data-lean="${o[0]}" aria-pressed="${L===o[0]}"><b>${o[1]}</b><span>${o[2]}</span></button>`).join("")}</div>
+     ${reveal}
+     ${L!==null?`<p class="muted" style="font-size:13px">${ev("hyp")} These are competing interpretations, not answers. Whichever way you lean, ask what would have to be true for the other view to win.</p>`:""}
+   </div>
+   <details class="po" id="po" ${S.poOpen?"open":""}><summary>Optional: test a roadmap idea against this tension</summary>
+     <div class="po-grid">
+       <p class="muted" style="font-size:13.5px">The desk can't analyse your idea. It gives you the questions and keeps your answers on the card. Nothing is stored or sent.</p>
+       <label>Initiative or idea<input type="text" id="po-title" value="${esc(S.poTitle||"")}" placeholder="For example: income-smoothing account for self-employed customers"></label>
+       ${PO_PROMPTS.map((q,i)=>`<label>${q}<textarea id="po-${i}" rows="2">${esc((S.po||[])[i]||"")}</textarea></label>`).join("")}
+     </div>
+   </details>`;
+}
+$("#ch").addEventListener("click",e=>{const b=e.target.closest("[data-lean]");if(!b)return;S.lean=S.lean===b.dataset.lean?null:b.dataset.lean;renderCh();renderTake();});
+$("#ch").addEventListener("input",e=>{
+  if(e.target.id==="po-title")S.poTitle=e.target.value;
+  else if(e.target.id&&e.target.id.startsWith("po-")){S.po=S.po||[];S.po[+e.target.id.slice(3)]=e.target.value;}
+  renderTake();
+});
+$("#ch").addEventListener("toggle",e=>{if(e.target.id==="po")S.poOpen=e.target.open;},true);
+
+/* ---------- Step 6: takeaway ---------- */
+function cardData(){
+  const t=T(),w=S.world,{p,exact}=presetFor(w),E=S.exp;
+  const d={world:(exact?p.name:"Your mix (closest to "+p.name+")"),code:codeOf(w),conds:FORCES.map(f=>`${f.label}: ${stageName(f.id,w[f.id])}`),need:"Feel secure and resilient"};
+  if(t){d.tension=`${t.title} · ${t.type}`;d.invariant=t.invariant;d.evidence=t.evidence;}
+  if(t&&E.shown&&E.force&&E.to){const s=t.sens[E.force],V=verdictFor(t,E.force,w[E.force],E.to);
+    d.changed=`${F(E.force).label}: ${stageName(E.force,w[E.force])} → ${stageName(E.force,E.to)}`;
+    d.diff=V.txt+(s.level==="none"?"":". After: "+plain(s.impl[E.to-1]));
+    d.why=plain(s.level==="none"?s.note:s.why);
+    d.predict=E.predict?PRED.find(x=>x[0]===E.predict)[1]:"";}
+  if(t&&S.lean!==null)d.lean=S.lean==="n"?"It depends":t.leans[+S.lean][0];
+  d.reflect=(S.reflect||"").trim();d.mine=($("#mine").value||"").trim();
+  d.po=(S.poTitle||"").trim();d.poA=(S.po||[]).map((a,i)=>a&&a.trim()?`${PO_PROMPTS[i]} ${a.trim()}`:"").filter(Boolean);
+  return d;
+}
+function renderTake(){
+  const d=cardData();
+  const row=(k,v)=>v?`<div class="row"><span>${k}</span><span>${esc(v)}</span></div>`:"";
+  $("#tcard").innerHTML=`
+    <span class="label">Discovery card · ${d.code}</span>
+    <h3>${esc(d.mine?d.mine.slice(0,90)+(d.mine.length>90?"…":""):(d.tension?d.tension.split(" · ")[0]:"Your discovery"))}</h3>
+    ${row("World",d.world)}${row("Need",d.need)}${row("Tension",d.tension)}
+    ${row("Changed",d.changed||(d.tension?"Not yet tried. Use step 4.":""))}
+    ${row("Difference",d.diff)}${row("Because",d.why)}${row("Predicted",d.predict)}
+    ${row("Stayed the same",d.changed?d.invariant:"")}${row("I lean",d.lean)}
+    ${row("Reconsidered",d.reflect)}${row("Roadmap idea",d.po)}
+    ${d.evidence?`<div class="row"><span>Evidence</span><span>${d.evidence.map(e=>EVL[e[0]]+" "+e[2].map(k=>"["+num(k)+"]").join("")).join(" · ")}</span></div>`:""}
+    ${!d.tension?`<p class="muted">Open a tension and try one change to fill this card.</p>`:""}`;
+}
+function cardText(){
+  const d=cardData(),L=["FUTURES MIXING DESK · DISCOVERY CARD"];
+  if(d.mine)L.push("","My provocation: "+d.mine);
+  L.push("","World: "+d.world+" ["+d.code+"]","Conditions (scenario assumptions): "+d.conds.join("; "),"Need: "+d.need);
+  if(d.tension)L.push("Tension: "+d.tension);
+  if(d.changed)L.push("Changed one thing: "+d.changed,"Difference (strategic hypothesis): "+d.diff,"Because: "+d.why,"What stayed the same: "+d.invariant);
+  if(d.predict)L.push("I predicted: "+d.predict);
+  if(d.lean)L.push("On the dilemma I lean: "+d.lean);
+  if(d.reflect)L.push("Assumption I reconsidered: "+d.reflect);
+  if(d.po){L.push("Roadmap idea tested: "+d.po);d.poA.forEach(a=>L.push("  - "+a));}
+  if(d.evidence)L.push("Evidence: "+d.evidence.map(e=>EVL[e[0]]+": "+e[1]+" ("+e[3]+") "+e[2].map(k=>SRC[k].t).join("; ")).join(" | "));
+  return L.join("\n");
+}
+function notesText(){
+  return ["SOURCE NOTES"].concat(KEYS.map((k,i)=>`[${i+1}] ${SRC[k].t}: ${SRC[k].u}`)).join("\n");
+}
+function copy(txt,label){
+  const t=$("#toast");
+  navigator.clipboard.writeText(txt).then(()=>{t.textContent=label+" copied. Paste it into Mural.";})
+  .catch(()=>{t.textContent="Copying is blocked here, so the text is selected below. Copy it manually.";
+    let ta=document.getElementById("copyFallback");if(!ta){ta=document.createElement("textarea");ta.id="copyFallback";ta.rows=8;t.after(ta);}ta.value=txt;ta.select();});
+}
+$("#starters").innerHTML=STARTERS.map(s=>`<button class="starter" type="button">${s}</button>`).join("");
+$("#starters").addEventListener("click",e=>{const b=e.target.closest(".starter");if(!b)return;const m=$("#mine");m.value=(m.value?m.value.trimEnd()+" ":"")+b.textContent.replace("…"," ");m.focus();renderTake();});
+$("#mine").addEventListener("input",renderTake);
+$("#copyBtn").addEventListener("click",()=>copy(cardText(),"Card"));
+$("#copyNotesBtn").addEventListener("click",()=>copy(notesText(),"Source notes"));
+
+/* ---------- Wiring ---------- */
+$("#doors").addEventListener("click",e=>{const b=e.target.closest("[data-t]");if(!b)return;
+  if(S.tension!==b.dataset.t){S.tension=b.dataset.t;S.exp={force:null,to:null,predict:null,shown:false};S.expNote="";S.lean=null;S.reflect="";}
+  renderAll();requestAnimationFrame(()=>$("#invSec").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}));});
+function renderAll(){syncControls();renderWorld();renderDoors();renderInv();renderExp();renderCh();renderTake();requestAnimationFrame(paintAll);}
+$("#sources").innerHTML=KEYS.map((k,i)=>`<li><span class="k">[${i+1}]</span><a href="${SRC[k].u}" target="_blank" rel="noopener">${esc(SRC[k].t)}</a></li>`).join("");
+buildControls();renderAll();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paintAll);
+
+</script>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Futures Mixing Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="tagrow"><span class="tagpill">2050</span><span class="tagpill">Financial life</span><span class="tagpill">UK customers</span></div>
+      <h1>Futures<br>Mixing Desk</h1>
+    </div>
+    <p>Answer five questions about the world in 2050, then generate. You get a future to step into, three sub-futures that make it tangible, a customer living through each, and a How Might We for financial services. Every figure links to a published report.</p>
+  </header>
+
+  <section class="card controls" aria-label="Choose your forces">
+    <div class="controls-head"><h2 class="caps">Set the forces</h2><span class="label">5 questions · 3 choices each</span></div>
+    <div class="qs" id="qs"></div>
+    <div class="gen-row">
+      <button class="go" id="genBtn" type="button">Generate future <span class="arr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12L12 4M5.5 4H12v6.5"/></svg></span></button>
+      <button class="ghost" id="drawBtn" type="button">Surprise me</button>
+      <span class="status" id="status"></span>
+    </div>
+  </section>
+
+  <section class="out" id="out" hidden>
+    <div class="card tuner" id="tuner" hidden>
+      <div class="window tuner-window" id="tunerWin"><span class="tab">TUNING</span><canvas id="tunerCanvas" aria-hidden="true"></canvas><span class="code" id="tunerHz">000.0 HZ</span></div>
+      <div class="tuner-body">
+        <span class="label">Signal chain</span>
+        <p class="tuner-status" id="tunerStatus" role="status" aria-live="polite">Reading your five channels…</p>
+        <ul class="meters" id="meters"></ul>
+      </div>
+    </div>
+    <div id="results" class="results" hidden>
+    <article class="card future" id="future"></article>
+    <section class="panel givens" id="givens"></section>
+    <section class="panel" id="world"></section>
+    <div class="sec-head">
+      <div><h2>Sub-futures</h2><p>Three tangible shifts this future produces, drawn from what your choices drive hardest.</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ghost" id="rerollBtn" type="button">Draw other sub-futures</button>
+        <button class="ghost" id="copyBtn" type="button">Copy for Mural</button>
+      </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="subs" id="subs"></div>
+    </div>
+  </section>
+
+  <section class="method">
+    <div>
+      <h2 class="caps">How the desk works</h2>
+      <p>The five questions are the big uncertainties. Things that happen in almost every UK future, such as an older population and longer working lives, are shown as givens instead of choices.</p>
+      <p>Generate matches your answers to the nearest of eight future archetypes, each drawn from several reports. Sub-futures are scored against your answers and three are drawn from the strongest. Timeline figures are sourced. Customer stories are composites written for the workshop, built on the evidence beside them, with no real customer data.</p>
+      <p>Each future is tuned like a signal. Its object is a sound form (a scope trace, a spectrum, ripples, waveforms, frequency ridges or a speaker) generated from your answers, so every future gets its own specimen and frequency. Use the desk as provocation, not a forecast.</p>
+    </div>
+    <div>
+      <h2 class="caps">Sources</h2>
+      <ul class="srclist" id="sources"></ul>
+    </div>
+  </section>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/specimens.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

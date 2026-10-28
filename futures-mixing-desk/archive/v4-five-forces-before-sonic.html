@@ -1,0 +1,627 @@
+<title>Futures Mixing Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: specimen cards. Five plain-language questions with three tap choices each, then a large specimen card for the generated future, a givens strip, and three sub-future specimen cards. Lines kept to a minimum: space and soft fills do the separating. */
+:root{
+  --ground:#E6E2F1; --ground2:#EEECF3; --card:#FFFFFF; --ink:#141418; --muted:#6B6A75; --line:#E4E2EA; --soft:#F3F1F7;
+  --pill:#1B1B1F; --pill-ink:#FFFFFF; --seg:#EFEDF4;
+  --build:#8A6A12;
+  --f-display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-serif:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#121214; --ground2:#18171C; --card:#1D1C21; --ink:#EEEDF2; --muted:#9C9AA6; --line:#2E2D34; --soft:#26252C;
+  --pill:#EEEDF2; --pill-ink:#141418; --seg:#28272E; --build:#E2B54A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#121214; --ground2:#18171C; --card:#1D1C21; --ink:#EEEDF2; --muted:#9C9AA6; --line:#2E2D34; --soft:#26252C;
+  --pill:#EEEDF2; --pill-ink:#141418; --seg:#28272E; --build:#E2B54A; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:linear-gradient(160deg,var(--ground) 0%,var(--ground2) 60%) fixed;background-color:var(--ground);color:var(--ink);
+  font-family:var(--f-display);font-size:15px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:24px 64px}
+.wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{margin:0;line-height:1.02;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+button{font:inherit;cursor:pointer;color:inherit}
+.caps{font-family:var(--f-display);font-weight:800;font-stretch:105%;text-transform:uppercase;letter-spacing:-.01em}
+.label{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* Hero */
+.hero{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px 32px}
+.hero h1{font-weight:900;font-stretch:118%;text-transform:uppercase;font-size:clamp(36px,7vw,84px);letter-spacing:-.02em}
+.hero p{max-width:46ch;color:var(--muted)}
+.tagrow{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tagpill{font-family:var(--f-mono);font-size:11px;border:1px solid var(--ink);border-radius:999px;padding:3px 10px;text-transform:uppercase;letter-spacing:.04em}
+
+/* Card shell */
+.card{background:var(--card);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.window{position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,var(--c1),var(--c2));isolation:isolate}
+.window canvas{display:block;width:100%;height:100%}
+.float{position:absolute;inset:0;animation:float 7s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.tab,.code{position:absolute;background:var(--card);font-family:var(--f-mono);font-size:11px;color:var(--ink);z-index:2;letter-spacing:.02em}
+.tab{top:0;left:0;padding:8px 16px 9px 6px;border-bottom-right-radius:18px}
+.tab::before,.tab::after,.code::before,.code::after{content:"";position:absolute;width:18px;height:18px}
+.tab::before{top:0;right:-18px;background:radial-gradient(circle at 100% 100%,transparent 17.5px,var(--card) 18px)}
+.tab::after{left:0;bottom:-18px;background:radial-gradient(circle at 100% 100%,transparent 17.5px,var(--card) 18px)}
+.code{bottom:0;right:0;padding:9px 6px 8px 16px;border-top-left-radius:18px}
+.code::before{top:-18px;right:0;background:radial-gradient(circle at 0 0,transparent 17.5px,var(--card) 18px)}
+.code::after{bottom:0;left:-18px;background:radial-gradient(circle at 0 0,transparent 17.5px,var(--card) 18px)}
+.card-body{padding:0 6px 8px;display:flex;flex-direction:column;gap:16px}
+
+/* Questions */
+.controls{padding:22px}
+.controls-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px}
+.controls-head h2{font-size:30px}
+.qs{display:flex;flex-direction:column;gap:22px;margin-top:6px}
+.q{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:10px 28px;align-items:center;border:0;margin:0;padding:0;min-width:0}
+@media (max-width:760px){.q{grid-template-columns:minmax(0,1fr)}}
+.q legend{float:left;padding:0;font-weight:700;font-size:18px;line-height:1.25}
+.q legend small{display:block;font-weight:400;font-size:13.5px;color:var(--muted);margin-top:2px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--seg);border-radius:999px;padding:4px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{display:flex;align-items:center;justify-content:center;text-align:center;min-height:42px;padding:6px 10px;border-radius:999px;font-size:13.5px;font-weight:600;cursor:pointer;line-height:1.2;transition:background .2s,color .2s}
+.seg label:hover{background:var(--card)}
+.seg input:checked + label{background:var(--pill);color:var(--pill-ink)}
+.seg input:focus-visible + label{outline:2px solid var(--ink);outline-offset:2px}
+@media (max-width:420px){.seg label{font-size:12.5px;padding:6px 6px}}
+
+.gen-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;margin-top:26px}
+.go{display:inline-flex;align-items:center;gap:14px;background:var(--pill);color:var(--pill-ink);border:0;border-radius:999px;padding:6px 6px 6px 22px;font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.02em}
+.go .arr{width:40px;height:40px;border-radius:50%;background:var(--pill-ink);color:var(--pill);display:grid;place-items:center}
+.go .arr svg{width:16px;height:16px}
+.ghost{border:1px solid var(--ink);background:transparent;border-radius:999px;padding:9px 16px;font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.status{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.status.dirty{color:var(--build)}
+
+/* Future card */
+.out{display:flex;flex-direction:column;gap:28px;scroll-margin-top:16px}
+.future{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:12px 28px}
+@media (max-width:860px){.future{grid-template-columns:minmax(0,1fr)}}
+.future .window{min-height:440px}
+@media (max-width:860px){.future .window{min-height:0;aspect-ratio:4/3.4}}
+.future .card-body{padding:12px 6px 8px;gap:18px}
+.future h2{font-size:clamp(38px,5.6vw,64px)}
+.subtitle{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+.subtitle b{color:var(--ink);font-weight:500}
+.lede{font-family:var(--f-serif);font-size:21px;line-height:1.35;max-width:40ch}
+.spec{display:flex;flex-direction:column;gap:7px}
+.srow{display:flex;align-items:baseline;gap:10px;font-family:var(--f-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
+.srow .k{color:var(--muted);min-width:11.5em}
+.srow .v{flex:1;min-width:0}
+.dots{display:inline-flex;gap:4px;align-self:center}
+.dots i{width:8px;height:8px;background:var(--line)}
+.dots i.on{background:var(--ink)}
+.readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:520px){.readouts{grid-template-columns:minmax(0,1fr)}}
+.readout{display:flex;flex-direction:column;gap:2px}
+.readout b{font-weight:800;font-stretch:110%;font-size:26px;font-variant-numeric:tabular-nums;line-height:1.1}
+.readout span{font-size:12.5px;color:var(--muted)}
+.finlife{background:var(--soft);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.chip{align-self:flex-start;background:var(--card);border-radius:999px;padding:4px 12px;font-size:12.5px;box-shadow:0 2px 10px rgba(80,60,140,.12)}
+.finlife p{font-family:var(--f-serif);font-size:17px;line-height:1.4}
+.refs{font-size:13px;color:var(--muted)}
+.cite{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);white-space:nowrap;text-decoration:none}
+.cite:hover{color:var(--ink);text-decoration:underline}
+
+.panel{background:var(--card);border-radius:6px;padding:20px 22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px 32px}
+.panel > .label{grid-column:1/-1}
+.wi{display:flex;flex-direction:column;gap:3px;font-size:14px}
+.wi .k{font-weight:700;font-size:15px}
+.wi .k small{font-family:var(--f-mono);font-weight:400;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-left:6px}
+.givens{background:transparent;padding:0 4px;gap:10px 32px}
+.givens .wi{background:var(--card);border-radius:16px;padding:14px 16px}
+
+/* Sub-future cards */
+.sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 16px}
+.sec-head h2{font-weight:900;font-stretch:115%;text-transform:uppercase;font-size:clamp(28px,4vw,44px)}
+.sec-head p{color:var(--muted);font-size:14px;max-width:52ch;margin-top:6px}
+.subs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+@media (max-width:1060px){.subs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.subs{grid-template-columns:minmax(0,1fr)}}
+.sub .window{aspect-ratio:1/0.95}
+.sub h3{font-size:clamp(26px,2.6vw,32px)}
+.steps{display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:12px;font-weight:500}
+.steps .bar{flex:0 0 70px;height:2px;background:var(--line);position:relative}
+.steps .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink)}
+.steps .of{color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;background:var(--soft);border-radius:999px;padding:4px 9px}
+.tags span.str{background:var(--pill);color:var(--pill-ink)}
+.drv{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.what{font-size:14.5px}
+.timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.timeline li{display:grid;grid-template-columns:4.4em minmax(0,1fr);gap:10px;font-size:13.5px}
+.timeline .when{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;padding-top:2px;color:var(--muted)}
+.story{border-radius:16px;padding:16px 18px;background:var(--soft);font-size:14.5px}
+.story .who{display:block;font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.hmw{border-radius:16px;padding:18px;background:linear-gradient(170deg,var(--c2),var(--card) 85%);display:flex;flex-direction:column;gap:10px}
+.hmw p{font-family:var(--f-serif);font-size:22px;line-height:1.22;color:var(--ink)}
+.hmw .chip{color:#141418;background:#FFFFFF}
+
+.method{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:28px;background:var(--card);border-radius:6px;padding:22px}
+@media (max-width:760px){.method{grid-template-columns:minmax(0,1fr)}}
+.method h2{font-size:22px;margin-bottom:10px}
+.method p{margin:0 0 8px;max-width:60ch;font-size:14px}
+.srclist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.srclist li{display:grid;grid-template-columns:3em minmax(0,1fr);gap:6px}
+.srclist .k{font-family:var(--f-mono);color:var(--muted)}
+.toast{font-family:var(--f-mono);font-size:12px;min-height:1.2em}
+#copyFallback{width:100%;font-family:var(--f-mono);font-size:12px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
+@keyframes rise{from{opacity:.4;transform:translateY(10px)}to{opacity:1;transform:none}}
+.fresh .future,.fresh .sub{animation:rise .5s ease both}
+.fresh .sub:nth-child(2){animation-delay:.08s}.fresh .sub:nth-child(3){animation-delay:.16s}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="tagrow"><span class="tagpill">2050</span><span class="tagpill">Financial life</span><span class="tagpill">UK customers</span></div>
+      <h1>Futures<br>Mixing Desk</h1>
+    </div>
+    <p>Answer five questions about the world in 2050, then generate. You get a future to step into, three sub-futures that make it tangible, a customer living through each, and a How Might We for financial services. Every figure links to a published report.</p>
+  </header>
+
+  <section class="card controls" aria-label="Choose your forces">
+    <div class="controls-head"><h2 class="caps">Set the forces</h2><span class="label">5 questions · 3 choices each</span></div>
+    <div class="qs" id="qs"></div>
+    <div class="gen-row">
+      <button class="go" id="genBtn" type="button">Generate future <span class="arr" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12L12 4M5.5 4H12v6.5"/></svg></span></button>
+      <button class="ghost" id="drawBtn" type="button">Surprise me</button>
+      <span class="status" id="status"></span>
+    </div>
+  </section>
+
+  <section class="out" id="out" aria-live="polite">
+    <article class="card future" id="future"></article>
+    <section class="panel givens" id="givens"></section>
+    <section class="panel" id="world"></section>
+    <div class="sec-head">
+      <div><h2>Sub-futures</h2><p>Three tangible shifts this future produces, drawn from what your choices drive hardest.</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ghost" id="rerollBtn" type="button">Draw other sub-futures</button>
+        <button class="ghost" id="copyBtn" type="button">Copy for Mural</button>
+      </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="subs" id="subs"></div>
+  </section>
+
+  <section class="method">
+    <div>
+      <h2 class="caps">How the desk works</h2>
+      <p>The five questions are the big uncertainties. Things that happen in almost every UK future, such as an older population and longer working lives, are shown as givens instead of choices.</p>
+      <p>Generate matches your answers to the nearest of eight future archetypes, each drawn from several reports. Sub-futures are scored against your answers and three are drawn from the strongest. Timeline figures are sourced. Customer stories are composites written for the workshop, built on the evidence beside them, with no real customer data.</p>
+      <p>The objects are generated from your answers, so each future gets its own specimen. Use the desk as provocation, not a forecast.</p>
+    </div>
+    <div>
+      <h2 class="caps">Sources</h2>
+      <ul class="srclist" id="sources"></ul>
+    </div>
+  </section>
+</div>
+
+<script>
+
+const SRC = {
+  B50:{t:"BCG Henderson Institute, Beyond Tomorrow: Four Scenarios for the World of 2050 (Apr 2026)",u:"https://www.bcg.com/publications/2026/beyond-tomorrow-four-scenarios-for-the-world-of-2050"},
+  BPR:{t:"BCG press release on Scenarios 2050 (Apr 2026)",u:"https://www.bcg.com/press/20april2026-global-economy-four-different-directions-2050"},
+  BRS:{t:"BCG, AI Will Reshape More Jobs Than It Replaces (Apr 2026)",u:"https://www.bcg.com/publications/2026/ai-will-reshape-more-jobs-than-it-replaces"},
+  BAW:{t:"BCG, AI at Work 2026: Strategy Matters More Than Tools (Jun 2026)",u:"https://www.bcg.com/publications/2026/ai-at-work-why-strategy-matters-more-than-tools"},
+  BA5:{t:"BCG, AI at Work 2025, reported by BigDATAwire",u:"https://www.bigdatawire.com/this-just-in/bcg-report-companies-must-go-beyond-ai-adoption-to-realize-its-full-potential"},
+  BNX:{t:"BCG, The Next 50 Years of Work (2024), reported by Outsource Accelerator",u:"https://news.outsourceaccelerator.com/experts-optimistic-future-work/"},
+  IPR:{t:"IPPR, Transformed by AI (Mar 2024)",u:"https://www.ippr.org/media-office/up-to-8-million-uk-jobs-at-risk-from-ai-unless-government-acts-finds-ippr"},
+  WEF:{t:"World Economic Forum, Future of Jobs Report 2025",u:"https://weforum.org/press/2025/01/future-of-jobs-report-2025-78-million-new-job-opportunities-by-2030-but-urgent-upskilling-needed-to-prepare-workforces/"},
+  WFG:{t:"WEF Future of Jobs 2025 summary (green jobs, care growth), CDI",u:"https://www.thecdi.net/news/future-of-jobs-report-shows-78-million-new-jobs-globally"},
+  AUT:{t:"Autonomy, Making it stick: the UK four-day week pilot one year on (2024)",u:"https://www.worktechacademy.com/?p=14115"},
+  TUC:{t:"TUC / University of Hertfordshire, Platformisation and the Pandemic (2021)",u:"https://www.computerweekly.com/news/252509210/Gig-economy-workforce-nearly-trebles-over-five-years"},
+  FFC:{t:"Full Fact on TUC platform work data (2019)",u:"https://fullfact.org/economy/has-gig-economy-doubled"},
+  ONH:{t:"ONS, Who has access to hybrid work in Great Britain? (Jun 2025)",u:"https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/articles/whohasaccesstohybridworkingreatbritain/latest"},
+  ONJ:{t:"ONS labour market release, Oct 2026 (via Trading Economics)",u:"https://tradingeconomics.com/united-kingdom/employment-change/news/593321"},
+  FCA:{t:"FCA, Financial Lives 2024 survey (May 2025)",u:"https://www.regulationtomorrow.com/2025/05/fca-financial-lives-2024-survey/"},
+  FCB:{t:"FCA Financial Lives 2024, further findings (PA via LBC)",u:"https://www.lbc.co.uk/article/5cda97b3fd5a4abbbdc856d1fa7946d5-rpTnG_2/"},
+  TML:{t:"The Mortgage Lender, self-employed borrower research (2023)",u:"https://thenegotiator.co.uk/news/self-employed-workers-fear-mortgage-rejection/"},
+  UKF:{t:"UK Finance, first-time buyer mortgage terms, Q1 2026",u:"https://www.expressandstar.com/uk-news/21-of-new-first-time-buyers-stretch-mortgage-terms-for-more-than-35-years-5802900"},
+  EXP:{t:"Experian, first-time buyer data (2026)",u:"https://2025.financialreporter.co.uk/over-half-of-first-time-buyers-face-paying-mortgages-into-retirement.html"},
+  UKL:{t:"UK Finance later-life lending, Q2 2026 (via Mortgage Professional)",u:"https://www.mpamag.com/uk/premium/retired-and-borrowing-how-the-over-55s-market-is-going-mainstream/590359"},
+  RFP:{t:"Resolution Foundation, parental wealth and home ownership (2018)",u:"https://www.mortgagesolutions.co.uk/news/2018/12/04/parent-wealth-nearly-as-important-as-earnings-for-young-homeowners"},
+  RFY:{t:"Resolution Foundation, young adults living with parents (2025)",u:"https://www.resolutionfoundation.org/?p=46472"}
+};
+const KEYS=Object.keys(SRC), num=k=>KEYS.indexOf(k)+1;
+
+/* Window palettes: [top, bottom, tint] */
+const PAL={
+  peri:["#5E58E2","#BFB2FF","#E4E1FF"], gold:["#E7A70B","#F7E4A8","#F6E3B0"], coral:["#E23D5F","#FAB59D","#FFD9CF"],
+  lime:["#B8DA2A","#EDF4AE","#EEF3D2"], magenta:["#A54EC3","#DCA3EA","#C9B8F5"], steel:["#535559","#BBBDC0","#E6E7E9"],
+  sky:["#4C8DE0","#C4E2FF","#DDEBFF"], peach:["#F2784C","#FFD6BF","#FFE6D8"]
+};
+
+
+/* Five uncertainties, three stages each: [choice, what it means, sources] */
+const FORCES=[
+ {id:"ai",ab:"AI",label:"AI at work",q:"How much work does AI do?",help:"From a helpful tool to running routine work.",def:3,stages:[
+  ["Helps out","Most workers use AI daily, as 74% of frontline staff now do, but jobs keep their shape.",["BAW"]],
+  ["Reshapes jobs","About half of jobs are redesigned around AI, the scale BCG models within two to three years.",["BRS"]],
+  ["Runs routine work","Agents absorb structured work. 10–15% of jobs disappear, with back-office and entry roles first.",["BRS","IPR"]]]},
+ {id:"gains",ab:"GN",label:"Who benefits",q:"Who benefits from the gains?",help:"Do productivity gains stay at the top or spread?",def:2,stages:[
+  ["A few","The richest 1% hold close to half of global wealth and the middle class shrinks.",["B50"]],
+  ["Some","Output grows while displaced workers carry the cost. IPPR's central case: 4.4m UK jobs lost, GDP up 6.3%.",["IPR"]],
+  ["Most people","Workers are augmented, not replaced, and productivity funds a wider safety net.",["IPR","B50"]]]},
+ {id:"earn",ab:"ER",label:"How people earn",q:"How do people earn a living?",help:"Steady employment or income from many places.",def:3,stages:[
+  ["One steady job","Most people hold one job; side income stays marginal, as with the 3.7% holding second jobs today.",["ONJ"]],
+  ["A mix","Employment blends with platform work, which 14.7% of adults did weekly in 2021.",["TUC"]],
+  ["Many gigs","Short-term and gig contracts become the default as routine knowledge work is automated.",["BPR"]]]},
+ {id:"world",ab:"WO",label:"World stability",q:"How stable is the world?",help:"Trade, conflict and cooperation between countries.",def:2,stages:[
+  ["Calm","Major economies cooperate and global AI standards are enforced.",["B50"]],
+  ["Bumpy","Rivalry grows but trade stays open for commercial reasons.",["BPR"]],
+  ["Shocks","Rival blocs form, trade falls to about 35% of GDP and defence rises to about 7%.",["BPR"]]]},
+ {id:"climate",ab:"CL",label:"Climate action",q:"How hard do we act on climate?",help:"From delay and damage to a climate-first economy.",def:1,stages:[
+  ["Delayed","Warming runs fast in a low-regulation world. Damage reaches homes and jobs.",["B50"]],
+  ["Uneven","Some sectors decarbonise, others stall. Green jobs grow in pockets.",["WFG"]],
+  ["Climate-first","Fossil fuels fall from 81% to 35% of energy and warming stabilises near 1.8°C.",["BPR"]]]}
+];
+
+const GIVENS=[
+ ["An older population, longer working lives","52% of new first-time buyers' mortgages already end at 65 or later, and lending to over-55s grew 13.4% in a year.",["EXP","UKL"]],
+ ["Starting from thin buffers","24% of UK adults have low financial resilience today, and one in ten has no cash savings.",["FCA"]]
+];
+
+/* Eight archetypes. p = profile across [ai,gains,earn,world,climate] on 1–3 */
+const FUTURES=[
+ {name:"The Leisure Dividend",pal:"peri",mat:"glass",p:[3,3,2,1,3],
+  lede:"AI carries much of the routine work and the gains are shared. People work far fewer hours on similar pay. The hard question becomes what a good life, and a good financial plan, looks like when work takes up less of it.",
+  figs:[["1,600 hrs","a year on average, down from 2,100 (global scenario)",["B50"]],["+13%","UK GDP with no job losses if AI augments workers",["IPR"]],["89%","of UK pilot firms still on a four-day week after a year",["AUT"]]],
+  fin:"Income is stable but arrives in new forms. Customers have time to engage with money and expect planning rather than products. Retirement blurs as work shrinks across the whole of life.",
+  refs:[["BCG's AI Abundance",["B50"]],["IPPR full augmentation",["IPR"]],["UK four-day week pilot",["AUT"]]]},
+ {name:"Winner-Takes-Most",pal:"steel",mat:"metal",p:[3,1,3,2,1],
+  lede:"Technology races ahead under light regulation. A minority captures most of the gains, routine knowledge work is automated and short-term contracts become normal.",
+  figs:[["~½","of global wealth held by the richest 1%, from about ⅓",["B50"]],["7.9m","UK jobs lost in IPPR's worst case, with no GDP gain",["IPR"]],["14.7%","of adults doing platform work weekly by 2021",["TUC"]]],
+  fin:"Financial lives split. Affluent customers want wealth, tax and inheritance services. Many others juggle volatile income, thin savings and costly credit, and family money decides who owns a home.",
+  refs:[["BCG's Digital Darwinism",["B50"]],["IPPR full displacement",["IPR"]],["TUC platform work research",["TUC"]]]},
+ {name:"The Patchwork Economy",pal:"lime",mat:"studded",p:[2,2,3,2,2],
+  lede:"AI reshapes jobs without removing them wholesale, but security erodes. People stitch income together from contracts, platforms and second jobs, and plan month to month.",
+  figs:[["50–55%","of US jobs reshaped by AI within two to three years",["BRS"]],["1.29m","people in the UK with second jobs in 2026",["ONJ"]],["24%","of UK adults with low financial resilience",["FCA"]]],
+  fin:"Payday disappears as the organising idea of money. Customers need products that read irregular income, smooth cashflow and protect against gaps, and they switch providers easily when they don't.",
+  refs:[["BCG on reshaped and divergent roles",["BRS"]],["TUC platform work research",["TUC"]],["ONS second-job data",["ONJ"]]]},
+ {name:"Fortress Economies",pal:"magenta",mat:"ribbon",p:[1,2,1,3,2],
+  lede:"Rival blocs, shorter supply chains and heavy security spending. Growth is slow, real incomes barely rise, and work shifts toward domestic industry and defence.",
+  figs:[["~1.8%","global growth a year, the slowest scenario",["BPR"]],["~7%","of GDP on defence, from 2.4% today",["B50"]],["57→35%","trade as a share of global GDP",["BPR"]]],
+  fin:"Households hunker down: fewer moves, longer terms, savings kept for emergencies where possible. Saving and investing at home may win political backing as states seek self-sufficiency.",
+  refs:[["BCG's Battling Blocs",["B50"]]]},
+ {name:"The Storm Years",pal:"coral",mat:"pearls",p:[2,1,2,3,1],
+  lede:"Climate damage and geopolitical shocks arrive together, and the gains from technology stay with a few. Households take repeated hits to homes, bills and jobs, with thin buffers to absorb them.",
+  figs:[["~1.3°C","warming today, rising fast in the low-regulation future",["B50"]],["~4–7%","of GDP on defence as the order fragments",["BPR"]],["24%","of UK adults already with low financial resilience",["FCA"]]],
+  fin:"Protection moves to the centre of financial life: insurance that stays available, emergency savings that actually exist, and support that arrives fast after a shock.",
+  refs:[["BCG's Digital Darwinism and Battling Blocs",["B50"]],["FCA Financial Lives",["FCA"]]]},
+ {name:"The Resilience Decades",pal:"gold",mat:"branch",p:[2,3,1,1,3],
+  lede:"Extreme weather forces a climate-first economy. Carbon markets, energy standards and adaptation decide where people live, what homes are worth and which jobs grow.",
+  figs:[["~1.8°C","warming stabilises, from about 1.3°C today",["B50"]],["81→35%","fossil fuels' share of global energy",["BPR"]],["34m","green-transition jobs worldwide by 2030",["WFG"]]],
+  fin:"Every home, car and pension becomes a climate decision. Customers expect finance that makes the transition affordable and insurance that still works in a riskier climate.",
+  refs:[["BCG's Climate Coalition",["B50"]],["WEF Future of Jobs 2025",["WFG"]]]},
+ {name:"The Managed Transition",pal:"sky",mat:"glass",p:[3,3,1,2,2],
+  lede:"AI reshapes most jobs, but employers and government invest in retraining and keep people in work. Change is fast but cushioned, and careers become a series of planned resets.",
+  figs:[["170m / 92m","jobs created and displaced worldwide by 2030",["WEF"]],["50–55%","of US jobs reshaped by AI within two to three years",["BRS"]],["0 vs 7.9m","UK job losses: IPPR best and worst cases",["IPR"]]],
+  fin:"Customers expect support through transitions: funded learning, income smoothing between roles and protection that covers retraining as well as illness.",
+  refs:[["BCG on reshaped jobs",["BRS"]],["IPPR policy-led scenarios",["IPR"]],["WEF Future of Jobs 2025",["WEF"]]]},
+ {name:"The Long Plateau",pal:"peach",mat:"studded",p:[1,2,1,2,2],
+  lede:"Change is slower than the hype. AI stays a helpful tool, productivity arrives late and working life looks a lot like today, with today's pressures intact.",
+  figs:[["~50%","frontline AI use, flat for several years before 2026",["BAW"]],["24%","of UK adults with low financial resilience",["FCA"]],["28%","of GB workers hybrid working",["ONH"]]],
+  fin:"Today's problems persist: stretched affordability, thin savings and slow pension build-up. The opportunity is better execution on familiar needs, not reinvention.",
+  refs:[["BCG AI at Work",["BAW"]],["BCG on adoption lag",["BRS"]],["FCA Financial Lives",["FCA"]]]}
+];
+
+const DRIVER_LOOK={ai:["peri","glass"],gains:["magenta","ribbon"],earn:["peach","studded"],time:["gold","glass"],life:["coral","pearls"],world:["steel","metal"],climate:["lime","branch"]};
+const DRIVER_LABEL={ai:"AI at work",gains:"Who benefits",earn:"How people earn",time:"AI and who benefits",life:"Given: longer lives",world:"World stability",climate:"Climate action"};
+
+const SUBS=[
+ {t:"The four-day household",d:"time",areas:["Income","Saving","Tax"],
+  s:u=>.5*u.ai+.5*u.gains,
+  what:"Many full-time staff move to four days without a pay cut. Income stays the same but the week changes shape, and so does what people do with the fifth day: care, learning, rest or a second income.",
+  tl:[["Now","In the UK pilot, 89% of firms kept the four-day week a year on; 51% made it permanent.",["AUT"]],["2030s","Shorter weeks spread through firms that redesign work around AI and have time to give back.",["BAW"]],["2040s","In the most automated futures, annual hours fall by about a quarter.",["B50"]]],
+  who:"Priya, 33, product designer",story:"Priya works Monday to Thursday on full pay. Fridays started as rest and became a small craft business through an online marketplace. Her bank now sees two incomes and she faces a tax bill she didn't plan for. Her pension still assumes a 40-hour working life.",
+  hmw:"help people turn a free day into lasting financial resilience, whether they earn, learn or rest with it?"},
+ {t:"Many incomes, one person",d:"earn",areas:["Income","Credit","Protection"],
+  s:u=>.85*u.earn+.15*(1-u.gains),
+  what:"Income arrives from several places at once: a contract, two platforms, a spare room, a side business. Each is real and none is predictable, yet most financial products still see only the main job.",
+  tl:[["Now","Weekly platform work rose from 5.8% of adults in 2016 to 14.7% in 2021; 1.29m people hold second jobs.",["TUC","ONJ"]],["2030s","38% of self-employed people already report a mortgage refused for volatile income. Credit, insurance and savings face the same gap.",["TML"]],["2040s","In low-regulation futures, gig and short contracts become the default.",["BPR"]]],
+  who:"Marcus, 36, designer and courier",story:"Marcus earns from a two-day design contract, a delivery app and a tutoring platform. Over 18 months he earns well, but no two months match. His credit limit was cut after a quiet January. He can't find income protection that covers platform work, so he budgets in a spreadsheet he rebuilds every quarter.",
+  hmw:"give people one picture of income from every source, and let saving, credit and protection flex with it month to month?"},
+ {t:"Adulthood starts later",d:"ai",areas:["Saving","Credit","Pensions"],
+  s:u=>.5*u.ai+.5*(1-u.gains),
+  what:"AI absorbs much of the structured work that used to train graduates. Entry roles thin out, so stable earnings start later. People live with parents longer and build credit, savings and pensions later too.",
+  tl:[["Now","Nearly two-thirds of people in their early 20s live with their parents. The average first-time buyer is 34.7.",["RFY","EXP"]],["2030s","Entry-level and junior positions are the most exposed in roles where AI substitutes for people.",["BRS","IPR"]],["2040s","Firms that kept junior pipelines compete for scarce experienced talent.",["BRS"]]],
+  who:"Ellie, 27, accounting graduate",story:"Ellie graduated as junior analyst roles were cut and now works short contracts. She pays her parents rent by bank transfer, which no credit file records. She has a small Lifetime ISA and opted out of her workplace pension to cover her phone and travel.",
+  hmw:"help young adults build credit, savings and a pension before their first stable job arrives?"},
+ {t:"The mid-career reset",d:"ai",areas:["Credit","Saving","Protection"],
+  s:u=>.8*u.ai+.2*u.earn,
+  what:"Most jobs keep their title but change their content. Retraining stops being a one-off and becomes a recurring life event, often with a gap in income between one version of a career and the next.",
+  tl:[["Now","BCG models 50–55% of US jobs reshaped by AI within two to three years.",["BRS"]],["2030s","WEF expects disruption equal to 22% of jobs by 2030: 170m roles created and 92m displaced.",["WEF"]],["2040s","More of each job is directing AI: 47% of workers already spend more time on that than on doing the work.",["BAW"]]],
+  who:"Dev, 45, claims handler",story:"Dev's role is being rebuilt around AI agents, so he takes six months out for a data course. His savings cover four. He pauses his pension, raises his overdraft and puts the fees on a credit card. A year later he earns more than before and is still paying the course off.",
+  hmw:"fund a mid-career reset the way we fund a home: planned ahead, protected and repaid from the higher income it creates?"},
+ {t:"Shocks without warning",d:"gains",areas:["Everyday money","Credit","Protection"],
+  s:u=>.55*u.ai+.3*(1-u.gains)+.15*u.shock,
+  what:"Where demand is fixed, efficiency turns into job losses, often in waves. Contact centres, back offices and routine analysis go first, and households with thin buffers fall behind within weeks.",
+  tl:[["Now","24% of UK adults have low financial resilience; one in ten has no cash savings.",["FCA"]],["2030s","BCG puts 10–15% of US jobs at risk of elimination within four to five years.",["BRS"]],["2040s","Without policy, IPPR's worst case sees 7.9m UK jobs lost and no GDP gain.",["IPR"]]],
+  who:"Sam, 41, contact-centre lead",story:"Sam's team is cut in a single week. He has £800 saved, a car on finance and a credit card he used to clear in full. Six weeks later he pays the minimum, has paused his pension and uses buy-now-pay-later for school uniforms. None of his providers know anything has changed.",
+  hmw:"spot an income shock across a customer's whole financial life and respond within days, not at the first missed payment?"},
+ {t:"Family money decides",d:"gains",areas:["Saving","Home","Inheritance"],
+  s:u=>.85*(1-u.gains)+.15*u.ai,
+  what:"When gains concentrate, family wealth matters as much as earnings. Money moves between generations both ways: deposits and gifts go down, care costs and support go up.",
+  tl:[["Now","Young people with property-owning parents are almost three times as likely to own a home by 30.",["RFP"]],["2030s","The middle class shrinks as AI gains go to firms and those who own them.",["BPR"]],["2040s","In the most unequal future, the richest 1% hold nearly half of global wealth.",["B50"]]],
+  who:"Zara and Josh, both 29",story:"Zara and Josh earn the same salary. Zara buys a flat with a family gift, and her parents' adviser sets up her pension. Josh rents, saves into an ISA nobody else can add to, and quietly helps his parents with their bills. Same income, opposite financial lives.",
+  hmw:"make support between generations, from gifts and guarantees to shared savings and inheritance, planned, fair and safe for everyone involved?"},
+ {t:"Income without an employer",d:"gains",areas:["Income","Protection","Credit"],
+  s:u=>.75*u.gains+.25*u.ai,
+  what:"If productivity gains are shared through the state or through ownership, more household income comes from somewhere other than a payslip: top-ups, dividends, shorter-hours guarantees. It is reliable, but every product built around salaries struggles to read it.",
+  tl:[["Now","IPPR's best case: no UK jobs lost and GDP up 13% (about £306bn a year) if workers are augmented.",["IPR"]],["2030s","Policy debate shifts to how gains fund support for an ageing population.",["B50"]],["2040s","In the abundance future, productivity growth of 5.7% a year funds an enlarged safety net.",["B50"]]],
+  who:"Ana, 50, part-time teacher",story:"Ana works three days a week. Part of her household income is a state productivity top-up guaranteed for life. Her budgeting app files it as other. Her insurer won't price income protection on it, and lenders treat it as unearned.",
+  hmw:"recognise, protect and build on income that doesn't come from an employer?"},
+ {t:"Finances that run to 75",d:"life",areas:["Pensions","Home","Care"],
+  s:u=>.5+.3*(1-u.gains)+.2*u.shock,
+  what:"Working lives, debts and retirements overlap. People borrow later, repay into their seventies, change careers in their fifties and pay for parents' care while still paying for their own home.",
+  tl:[["Now","21% of new first-time buyers take terms over 35 years; 52% will be 65 or older when the mortgage ends.",["UKF","EXP"]],["2030s","Lending to over-55s reached 37,300 loans in Q2 2026, up 13.4% in a year.",["UKL"]],["2040s","Employers build for intergenerational teams and longer, more flexible careers.",["B50"]]],
+  who:"Tom and Jo, 58",story:"Tom and Jo bought at 34 on a 37-year term. Now Jo's mum needs care, Tom is changing careers, and their pension forecasts still assume they stop at 67. Their mortgage, pensions, savings and care costs sit with five providers, and none can see the whole picture.",
+  hmw:"plan borrowing, pensions, care and drawdown as one lifelong picture instead of separate products?"},
+ {t:"The long squeeze",d:"world",areas:["Everyday money","Saving","Credit"],
+  s:u=>.85*u.shock+.15*(1-u.gains),
+  what:"When security comes first, growth slows and public money goes to defence and pensions. Real incomes rise slowly for years. Households hold on: fewer moves, longer terms and more credit for the unexpected.",
+  tl:[["Now","1.29m people in the UK hold second jobs to top up income.",["ONJ"]],["2030s","Defence spending heads toward 7% of GDP and trade toward 35%.",["B50","BPR"]],["2040s","Global growth settles near 1.8% a year, the slowest of BCG's futures.",["BPR"]]],
+  who:"Leah, 39, nurse",story:"Leah's pay has risen more slowly than prices for most of a decade. She hasn't moved, has renewed on a longer term twice and keeps a credit card for car repairs. She wants to save, but every month ends at zero.",
+  hmw:"help households stay resilient through a decade of flat real incomes without nudging them into more debt?"},
+ {t:"The home as a climate risk",d:"climate",areas:["Home","Protection","Pensions"],
+  s:u=>.7*(1-u.climate)+.3*u.shock,
+  what:"With warming running fast and adaptation patchy, physical risk reaches ordinary household finances: insurance premiums, repair bills, home values and even where people can afford to live.",
+  tl:[["Now","Warming is about 1.3°C above pre-industrial levels.",["B50"]],["2030s","A run of extreme weather events in the late 2020s tests homes and insurers.",["BPR"]],["2040s","In the low-regulation future, the world keeps warming rapidly.",["B50"]]],
+  who:"Ben, 52, lives by the river",story:"Ben's street has flooded twice in three years. His home insurance premium has more than doubled and his savings went on the last repair. Valuers now mark his home down, so he is weighing an early pension withdrawal to fund a move.",
+  hmw:"help households see, price and reduce the climate risk in their finances before the damage arrives?"},
+ {t:"Retrofit and the green payslip",d:"climate",areas:["Home","Credit","Income"],
+  s:u=>.85*u.climate+.15*(1-u.shock),
+  what:"A climate-first economy puts energy performance into every home decision and creates large numbers of local jobs in installation, repair and resilience. Homes, bills and incomes become linked.",
+  tl:[["Now","WEF expects the green transition to create 34 million jobs worldwide by 2030.",["WFG"]],["2030s","Carbon markets spread to most major economies by 2040.",["BPR"]],["2040s","Fossil fuels fall from 81% to 35% of global energy.",["BPR"]]],
+  who:"Halima, 46, trainee installer",story:"Halima retrains as a heat-pump installer through a funded apprenticeship. Her own house needs work to meet the new energy standard. Her bills fall once it's done, but the upfront cost lands in the same year her income dipped during training.",
+  hmw:"join up retrofit finance, energy savings and new green incomes into one offer that pays for itself?"},
+ {t:"Agents with your money",d:"ai",areas:["Everyday money","Payments","Saving"],
+  s:u=>.9*u.ai+.1*u.gains,
+  what:"People already spend more time directing AI than doing tasks themselves at work. That habit is likely to move into personal finance: agents that compare, switch, pay and save on a customer's behalf. This extends today's workplace trend; it is not yet measured.",
+  tl:[["Now","74% of frontline staff use AI regularly; 47% spend more time directing or reviewing AI than doing the work.",["BAW"]],["2030s","Three in four employees already expect AI agents to be vital to their future success.",["BA5"]],["2040s","In the abundance future, AI reshapes leisure and daily life as well as work.",["B50"]]],
+  who:"Femi, 38, operations manager",story:"Femi manages AI agents all day at work. At home he lets one move money between his accounts, switch his energy deal and sweep spare cash into savings. It saves him money every month. Last spring it sent a payment to the wrong account, and nobody could tell him who was responsible.",
+  hmw:"let customers hand everyday money decisions to AI agents they can trust, see and stop?"},
+ {t:"Home is the workplace",d:"time",areas:["Everyday money","Home","Protection"],
+  s:u=>.5*u.ai+.3*u.gains+.2*(1-u.earn),
+  what:"Hybrid and remote work make the home an office for some people and not others. Energy and broadband costs, insurance needs and where people choose to live all shift, mostly for graduates and higher earners.",
+  tl:[["Now","28% of GB workers hybrid work: 41% of degree holders against 4% with no qualifications.",["ONH"]],["2030s","Flexible and compressed schedules spread as AI changes what needs an office.",["BAW"]],["2040s","Shorter weeks put even more of working life at home.",["B50"]]],
+  who:"Aisha and Luke, neighbours",story:"Aisha works from home three days a week on a city salary and pays more for heating and broadband. Luke works local shifts and spends on fuel. Their bank, insurer and energy supplier treat them as identical households.",
+  hmw:"recognise that a customer's home is also their workplace, and price, protect and support them accordingly?"},
+ {t:"Second careers in care",d:"life",areas:["Pensions","Income","Saving"],
+  s:u=>.45+.35*u.gains+.2*u.ai,
+  what:"Care and community roles are among the strongest sources of new work, and many people move into them later in life. Earnings often fall, careers run longer, and pensions get drawn alongside a wage.",
+  tl:[["Now","Care and health are among the fastest-growing occupations to 2030.",["WFG"]],["2030s","BCG's experts expect the strongest job growth in care-based roles supporting community health.",["BNX"]],["2040s","Multi-stage careers and intergenerational teams become normal.",["B50"]]],
+  who:"Carol, 58, from bank ops to care",story:"Carol leaves a bank operations job to become a community care worker. She earns less, works shifts and plans to keep going into her seventies. She has a decent pension pot and doesn't know whether to draw on it now to top up her pay.",
+  hmw:"help people manage a late-career drop in income, across pensions, savings and debt together?"},
+ {t:"Paper-thin buffers",d:"earn",areas:["Saving","Everyday money","Credit"],
+  s:u=>.45*(1-u.gains)+.35*u.earn+.2*u.shock,
+  what:"Volatile income plus small savings leaves many households one bad month from difficulty. Saving is hard to automate when there is no regular payday to attach it to.",
+  tl:[["Now","21% of UK adults have under £1,000 for emergencies; 8% are usually overdrawn by payday.",["FCB"]],["2030s","Most platform workers use it to top up other income; only around 9% rely on it alone.",["FFC"]],["2040s","In volatile futures, irregular pay is the norm rather than the exception.",["BPR"]]],
+  who:"Jade, 24, courier and cleaner",story:"Jade delivers food and cleans offices, and her pay lands on different days every week. Her bank's round-up saver doesn't help because she rarely uses her card. Her emergency fund is, in practice, a buy-now-pay-later limit.",
+  hmw:"make saving automatic for people whose income never arrives the same way twice?"}
+];
+
+/* ---------- Generated specimens (canvas) ---------- */
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function blob(ctx,cx,cy,R,r,amp){
+  const k=[2,3,4,5].map(n=>({n,a:(r()*amp)/n*2,p:r()*6.283}));
+  ctx.beginPath();
+  for(let i=0;i<=120;i++){const t=i/120*6.283;let m=1;k.forEach(o=>m+=o.a*Math.sin(o.n*t+o.p));const x=cx+Math.cos(t)*R*m,y=cy+Math.sin(t)*R*m;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.closePath();
+}
+function sphere(ctx,x,y,rad,light,mid,dark){
+  const g=ctx.createRadialGradient(x-rad*.35,y-rad*.4,rad*.05,x,y,rad);
+  g.addColorStop(0,light);g.addColorStop(.55,mid);g.addColorStop(1,dark);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,rad,0,6.283);ctx.fill();
+}
+const DRAW={
+  glass(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.27;ctx.save();ctx.translate(w/2,h/2);ctx.rotate(-.45+r()*.3);ctx.scale(.72,1.18);
+    blob(ctx,0,0,R,r,.12);ctx.save();ctx.clip();
+    const base=ctx.createLinearGradient(-R,-R,R,R);base.addColorStop(0,"rgba(255,255,255,.95)");base.addColorStop(1,pal[2]);
+    ctx.fillStyle=base;ctx.fillRect(-R*2,-R*2,R*4,R*4);
+    ctx.filter="blur("+Math.round(R*.14)+"px)";
+    const cols=["rgba(255,90,140,.55)","rgba(60,110,255,.6)",pal[0]+"aa","rgba(120,220,255,.5)","rgba(190,80,255,.45)"];
+    for(let i=0;i<7;i++){ctx.strokeStyle=cols[i%cols.length];ctx.lineWidth=R*(.12+r()*.25);ctx.beginPath();
+      ctx.moveTo(-R*1.2,(r()-.5)*R*2);ctx.bezierCurveTo(-R*.4,(r()-.5)*R*2.4,R*.4,(r()-.5)*R*2.4,R*1.2,(r()-.5)*R*2);ctx.stroke();}
+    ctx.filter="none";
+    const hl=ctx.createRadialGradient(-R*.4,-R*.55,0,-R*.4,-R*.55,R*.9);hl.addColorStop(0,"rgba(255,255,255,.85)");hl.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=hl;ctx.fillRect(-R*2,-R*2,R*4,R*4);ctx.restore();
+    ctx.lineWidth=R*.05;ctx.strokeStyle="rgba(255,255,255,.75)";ctx.stroke();ctx.restore();
+  },
+  pearls(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3,pts=[];
+    for(let i=0;i<70;i++){const t=r()*6.283,d=Math.sqrt(r())*R*(.78+.22*Math.sin(3*t+1));pts.push({x:w/2+Math.cos(t)*d,y:h/2+Math.sin(t)*d*.85,s:R*(.13+r()*.13),hot:r()<.12});}
+    pts.sort((a,b)=>a.y-b.y);
+    pts.forEach(p=>{sphere(ctx,p.x,p.y,p.s,"#ffffff",p.hot?"#f3a3b8":pal[2],p.hot?"#d0306a":"#e9b5a8");
+      ctx.fillStyle="rgba(255,255,255,.35)";for(let j=0;j<10;j++){const a=r()*6.283,dd=r()*p.s*.8;ctx.beginPath();ctx.arc(p.x+Math.cos(a)*dd,p.y+Math.sin(a)*dd,p.s*.06,0,6.283);ctx.fill();}});
+  },
+  studded(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3;ctx.save();ctx.translate(w/2,h/2);ctx.rotate(r()*.8-.4);
+    blob(ctx,0,0,R,r,.32);
+    const g=ctx.createRadialGradient(-R*.35,-R*.4,R*.1,0,0,R*1.25);g.addColorStop(0,"#ffffff");g.addColorStop(.6,"#dcdce2");g.addColorStop(1,"#9c9ca6");
+    ctx.fillStyle=g;ctx.fill();ctx.clip();
+    const cols=["#6f6f52","#c8ac52","#2c5bd2","#8c8c90","#d8c174","#3a3a3a"];
+    for(let i=0;i<340;i++){const x=(r()-.5)*R*2.6,y=(r()-.5)*R*2.6,s=R*(.018+r()*.022);
+      sphere(ctx,x,y,s,"#ffffff",cols[i%cols.length],"#222");}
+    ctx.restore();
+  },
+  ribbon(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3,L=R*.2;
+    const dark="#3b2a8f",mid="#5a46c8",lite="#8d7ce6";
+    for(let i=0;i<7;i++){
+      const p=[0,1,2,3].map(()=>[w/2+(r()-.5)*R*2.2,h/2+(r()-.5)*R*2.2]);
+      const path=()=>{ctx.beginPath();ctx.moveTo(...p[0]);ctx.bezierCurveTo(...p[1],...p[2],...p[3]);};
+      ctx.lineCap="round";
+      path();ctx.strokeStyle=dark;ctx.lineWidth=L;ctx.stroke();
+      ctx.save();ctx.translate(-L*.12,-L*.14);path();ctx.strokeStyle=mid;ctx.lineWidth=L*.7;ctx.stroke();
+      ctx.translate(-L*.08,-L*.1);path();ctx.strokeStyle=lite;ctx.lineWidth=L*.25;ctx.globalAlpha=.6;ctx.stroke();ctx.restore();ctx.globalAlpha=1;
+    }
+  },
+  branch(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.34;
+    const segs=[];
+    const grow=(x,y,a,len,wd,d)=>{const x2=x+Math.cos(a)*len,y2=y+Math.sin(a)*len;segs.push([x,y,x2,y2,wd]);
+      if(d<=0)return;const n=r()<.5?2:3;for(let i=0;i<n;i++)grow(x2,y2,a+(r()-.5)*1.3,len*(.6+r()*.2),wd*.78,d-1);};
+    grow(w/2-R*.2,h/2+R*.95,-1.35-r()*.3,R*.62,R*.13,3);
+    ctx.lineCap="round";
+    const pass=(col,off,scale)=>{ctx.strokeStyle=col;segs.forEach(s=>{ctx.lineWidth=s[4]*scale;ctx.beginPath();ctx.moveTo(s[0]+off,s[1]+off);ctx.lineTo(s[2]+off,s[3]+off);ctx.stroke();});};
+    pass("#8a6a22",R*.02,1);pass("#c9a64c",0,.82);pass("#f1dc9c",-R*.018,.32);pass("rgba(255,255,255,.7)",-R*.025,.1);
+  },
+  metal(ctx,w,h,r,pal){
+    const R=Math.min(w,h)*.3,H=R*.62;ctx.save();ctx.translate(w/2,h/2+R*.1);ctx.rotate(-.32+r()*.12);
+    const ry=R*.42;
+    const side=ctx.createLinearGradient(-R,0,R,0);side.addColorStop(0,"#1c1c1e");side.addColorStop(.45,"#4a4a4e");side.addColorStop(.6,"#2a2a2d");side.addColorStop(1,"#121214");
+    ctx.beginPath();ctx.ellipse(0,0,R,ry,0,0,Math.PI);ctx.lineTo(-R,-H);ctx.ellipse(0,-H,R,ry,0,Math.PI,0,true);ctx.closePath();ctx.fillStyle=side;ctx.fill();
+    ctx.save();ctx.clip();
+    for(let row=0;row<7;row++)for(let c=-16;c<=16;c++){const t=c/16;const x=t*R*.97;const ybase=Math.sqrt(1-t*t)*ry;const y=-H*.12-row*H*.12+ybase;
+      const s=R*.022*Math.sqrt(1-t*t);if(s<.6)continue;ctx.fillStyle="#08080a";ctx.beginPath();ctx.ellipse(x,y,s,s*1.1,0,0,6.283);ctx.fill();}
+    ctx.restore();
+    const rim=ctx.createLinearGradient(-R,-H-ry,R,-H+ry);rim.addColorStop(0,"#f4f4f5");rim.addColorStop(.5,"#9c9da1");rim.addColorStop(1,"#d9dadc");
+    ctx.beginPath();ctx.ellipse(0,-H,R,ry,0,0,6.283);ctx.fillStyle=rim;ctx.fill();
+    const top=ctx.createLinearGradient(-R,-H,R,-H);top.addColorStop(0,"#c8c9cc");top.addColorStop(.35,"#ffffff");top.addColorStop(.7,"#a4a5a9");top.addColorStop(1,"#e6e7e9");
+    ctx.beginPath();ctx.ellipse(0,-H,R*.9,ry*.88,0,0,6.283);ctx.fillStyle=top;ctx.fill();ctx.restore();
+  }
+};
+function paintSpecimen(canvas){
+  const pal=PAL[canvas.dataset.pal],mat=canvas.dataset.mat,seed=+canvas.dataset.seed;
+  const box=canvas.getBoundingClientRect();if(!box.width)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(box.width*dpr);canvas.height=Math.round(box.height*dpr);
+  const ctx=canvas.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,box.width,box.height);
+  const w=box.width,h=box.height;
+  const sh=ctx.createRadialGradient(w/2,h*.86,0,w/2,h*.86,w*.28);sh.addColorStop(0,"rgba(0,0,0,.14)");sh.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=sh;ctx.fillRect(0,0,w,h);
+  try{DRAW[mat](ctx,w,h,rng(seed),pal);}catch(e){}
+}
+function paintAll(){document.querySelectorAll("canvas[data-mat]").forEach(paintSpecimen);}
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(paintAll,150);});
+
+
+/* ---------- State and UI ---------- */
+const st={};FORCES.forEach(f=>st[f.id]=f.def);
+try{const s=JSON.parse(localStorage.getItem("fmd3")||"null");if(s)FORCES.forEach(f=>{if([1,2,3].includes(s[f.id]))st[f.id]=s[f.id];});}catch(e){}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cites=a=>(a||[]).map(k=>`<a class="cite" href="${SRC[k].u}" target="_blank" rel="noopener" title="${esc(SRC[k].t)}">[${num(k)}]</a>`).join(" ");
+let generated=null,dirty=false;
+
+function buildQs(){
+  $("#qs").innerHTML=FORCES.map(f=>`
+   <fieldset class="q">
+     <legend>${f.q}<small>${f.help}</small></legend>
+     <div class="seg">${f.stages.map((s,i)=>`<input type="radio" name="q-${f.id}" id="q-${f.id}-${i+1}" value="${i+1}" ${st[f.id]===i+1?"checked":""}><label for="q-${f.id}-${i+1}">${s[0]}</label>`).join("")}</div>
+   </fieldset>`).join("");
+  FORCES.forEach(f=>document.querySelectorAll(`input[name="q-${f.id}"]`).forEach(r=>r.addEventListener("change",e=>{st[f.id]=+e.target.value;markDirty();})));
+}
+function syncQs(){FORCES.forEach(f=>{const r=document.getElementById(`q-${f.id}-${st[f.id]}`);if(r)r.checked=true;});}
+function markDirty(){
+  try{localStorage.setItem("fmd3",JSON.stringify(st));}catch(e){}
+  if(generated){dirty=true;const s=$("#status");s.textContent="Choices changed. Generate again.";s.classList.add("dirty");}
+}
+function nearest(){const v=FORCES.map(f=>st[f.id]);return FUTURES.map(F=>({F,d:Math.sqrt(F.p.reduce((a,x,i)=>a+(x-v[i])**2,0))})).sort((a,b)=>a.d-b.d);}
+function unit(){return{ai:(st.ai-1)/2,gains:(st.gains-1)/2,earn:(st.earn-1)/2,shock:(st.world-1)/2,climate:(st.climate-1)/2};}
+const level=s=>s>=.7?"Strong signal":s>=.5?"Building":"Faint";
+function code(snap){return FORCES.map(f=>f.ab+snap[f.id]).join(".");}
+
+function pickSubs(random){
+  const u=unit(),scored=SUBS.map(x=>({...x,sc:Math.min(1,x.s(u))})).sort((a,b)=>b.sc-a.sc),out=[],used=new Set();
+  if(!random){for(const x of scored){if(out.length===3)break;if(used.has(x.d))continue;out.push(x);used.add(x.d);}}
+  else{
+    let pool=scored.filter(x=>x.sc>=.45);if(pool.length<4)pool=scored.slice(0,6);
+    const prev=new Set((generated?.subs||[]).map(x=>x.t));
+    while(out.length<3&&pool.length){
+      const cand=pool.filter(x=>!used.has(x.d)&&!(prev.has(x.t)&&pool.length>4)),list=cand.length?cand:pool;
+      const tot=list.reduce((a,x)=>a+x.sc**2,0);let q=Math.random()*tot,ch=list[0];
+      for(const x of list){q-=x.sc**2;if(q<=0){ch=x;break;}}
+      out.push(ch);used.add(ch.d);pool=pool.filter(x=>x!==ch);
+    }
+    out.sort((a,b)=>b.sc-a.sc);
+  }
+  return out;
+}
+function shapers(){return FORCES.filter(f=>st[f.id]!==2).slice(0,2).map(f=>f.stages[st[f.id]-1][0].toLowerCase()+" ("+f.label.toLowerCase()+")");}
+
+function generate(){
+  const ranked=nearest(),F=ranked[0].F,next=ranked[1].F,close=ranked[1].d-ranked[0].d<0.5;
+  generated={F,next,close,subs:pickSubs(false),shp:shapers(),snap:{...st},roll:0};
+  dirty=false;const s=$("#status");s.classList.remove("dirty");s.textContent="Generated from your current choices.";
+  render();
+}
+function windowHTML(pal,mat,seed,tab,codeTxt){
+  const p=PAL[pal];
+  return `<div class="window" style="--c1:${p[0]};--c2:${p[1]}">
+    <span class="tab">${tab}</span>
+    <div class="float"><canvas data-pal="${pal}" data-mat="${mat}" data-seed="${seed}" aria-hidden="true"></canvas></div>
+    <span class="code">${codeTxt}</span></div>`;
+}
+function render(){
+  const {F,next,close,subs,snap,roll}=generated,cd=code(snap);
+  const fut=$("#future");
+  fut.innerHTML=`
+    ${windowHTML(F.pal,F.mat,hash(cd+F.name),"2050",cd)}
+    <div class="card-body">
+      <span class="subtitle">Your generated future${close?` · close to <b>${next.name}</b>`:""}</span>
+      <h2 class="caps">${F.name}</h2>
+      <p class="lede">${F.lede}</p>
+      <div class="spec">${FORCES.map(f=>{const v=snap[f.id];return `<div class="srow"><span class="k">${f.label}</span><span class="v">${f.stages[v-1][0]}</span><span class="dots" aria-hidden="true">${[1,2,3].map(i=>`<i class="${i<=v?"on":""}"></i>`).join("")}</span></div>`}).join("")}</div>
+      <div class="readouts">${F.figs.map(x=>`<div class="readout"><b>${x[0]}</b><span>${x[1]} ${cites(x[2])}</span></div>`).join("")}</div>
+      <div class="finlife"><span class="chip">Financial life in this world</span><p>${F.fin}</p></div>
+      <p class="refs">Built from: ${F.refs.map(r=>`${r[0]} ${cites(r[1])}`).join(" · ")}</p>
+    </div>`;
+  $("#givens").innerHTML=`<span class="label">Givens · true in every future</span>`+GIVENS.map(g=>`<div class="wi"><span class="k">${g[0]}</span><span>${g[1]} ${cites(g[2])}</span></div>`).join("");
+  $("#world").innerHTML=`<span class="label">Life in this world · your five choices</span>`+FORCES.map(f=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>${f.label}</small></span><span>${sg[1]} ${cites(sg[2])}</span></div>`}).join("");
+  $("#subs").innerHTML=subs.map((x,i)=>{
+    const look=DRIVER_LOOK[x.d],p=PAL[look[0]];
+    return `<article class="card sub" style="--c1:${p[0]};--c2:${p[1]}">
+      ${windowHTML(look[0],look[1],hash(x.t+cd+roll),"SUB-FUTURE",`0${i+1} / 03`)}
+      <div class="card-body">
+        <div class="steps"><span>0${i+1}</span><span class="bar"><i style="width:${(i+1)/3*100}%"></i></span><span class="of">03</span></div>
+        <h3 class="caps">${x.t}</h3>
+        <span class="drv">Driven by ${DRIVER_LABEL[x.d].toLowerCase()}</span>
+        <div class="tags"><span class="str">${level(x.sc)}</span>${x.areas.map(a=>`<span>${a}</span>`).join("")}</div>
+        <p class="what">${x.what}</p>
+        <ul class="timeline">${x.tl.map(t=>`<li><span class="when">${t[0]}</span><span>${t[1]} ${cites(t[2])}</span></li>`).join("")}</ul>
+        <div class="story"><span class="who">${x.who} · illustrative</span>${x.story}</div>
+        <div class="hmw"><span class="chip">Financial services · How might we</span><p>How might we ${x.hmw}</p></div>
+      </div>
+    </article>`}).join("");
+  const out=$("#out");out.classList.remove("fresh");void out.offsetWidth;out.classList.add("fresh");
+  requestAnimationFrame(paintAll);
+}
+function summary(){
+  const {F,subs,snap}=generated,L=[`FUTURE: ${F.name}`,F.lede,"",
+    "Choices: "+FORCES.map(f=>`${f.label}: ${f.stages[snap[f.id]-1][0]}`).join(" | "),
+    "Givens: "+GIVENS.map(g=>g[0]).join("; "),"",`Financial life: ${F.fin}`,""];
+  subs.forEach((x,i)=>L.push(`SUB-FUTURE ${i+1}: ${x.t}`,x.what,`Story (illustrative), ${x.who}: ${x.story}`,`HMW: How might we ${x.hmw}`,""));
+  L.push("Sources: see the Futures Mixing Desk source list.");return L.join("\n");
+}
+$("#genBtn").addEventListener("click",()=>{generate();$("#out").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});});
+$("#rerollBtn").addEventListener("click",()=>{if(dirty){generate();return;}generated.subs=pickSubs(true);generated.roll++;render();});
+$("#drawBtn").addEventListener("click",()=>{FORCES.forEach(f=>st[f.id]=1+Math.floor(Math.random()*3));syncQs();markDirty();
+  const s=$("#status");s.textContent="New random choices. Press Generate future.";s.classList.add("dirty");});
+$("#copyBtn").addEventListener("click",()=>{
+  const txt=summary(),t=$("#toast");
+  navigator.clipboard.writeText(txt).then(()=>{t.textContent="Copied. Paste it into Mural or your notes.";})
+  .catch(()=>{t.textContent="Copying is blocked here, so the text is selected below. Copy it manually.";
+    let ta=document.getElementById("copyFallback");if(!ta){ta=document.createElement("textarea");ta.id="copyFallback";ta.rows=8;t.after(ta);}
+    ta.value=txt;ta.select();});
+});
+$("#sources").innerHTML=KEYS.map((k,i)=>`<li><span class="k">[${i+1}]</span><a href="${SRC[k].u}" target="_blank" rel="noopener">${esc(SRC[k].t)}</a></li>`).join("");
+buildQs();
+generate();
+$("#status").textContent="Showing an example. Change your answers, then Generate.";
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paintAll);
+</script>
