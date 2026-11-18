@@ -145,10 +145,7 @@ function render(){
       <div class="readouts">${W.rank.slice(1,4).map(id=>{const x=stage(id,snap)[2];return `<div class="readout"><b>${x.fig[0]}</b><span>${x.fig[1]} ${cites([x.src[0]])}</span></div>`}).join("")}</div>
     </div>
     <div class="f-deep">
-      <div class="f-col">
-        <section class="f-sec"><span class="label">A glimpse of everyday life</span><div class="glimpse">${W.l}</div></section>
-        <section class="f-sec"><span class="label">An unexpected tension</span><div class="tension"><p>${W.x}</p></div></section>
-      </div>
+      <section class="f-sec"><span class="label">An unexpected tension</span><div class="tension"><p>${W.x}</p></div></section>
       <section class="f-sec"><span class="label">How we got here</span>
         <ol class="timeline">
           <li><span class="when">Now</span><span>${tag("Evidence")}${lead.now} ${cites(lead.src.slice(-1))}</span></li>
@@ -160,8 +157,8 @@ function render(){
     </div>
     <div class="f-deep">
       <section class="f-sec finlife"><span class="chip">What this challenges for financial services</span><p>${W.f}</p></section>
-      <section class="f-sec"><span class="label">Three questions for your workshop</span>
-        <ol class="qlist">${W.q.map(q=>`<li>${q}</li>`).join("")}</ol>
+      <section class="f-sec"><span class="label">Three provocations</span>
+        <ul class="provs">${W.v.map(v=>`<li>${v}</li>`).join("")}</ul>
       </section>
     </div>`;
   $("#subs").innerHTML=subs.map((x,i)=>{
@@ -210,8 +207,8 @@ function showSub(i){
 }
 function summary(){
   const {W,subs,snap}=generated,lead=stage(W.rank[0],snap)[2],L=[`FUTURE: ${W.t}`,"",`The world in a nutshell: ${W.n}`,"",
-    `A glimpse of everyday life: ${W.l}`,"",`An unexpected tension: ${W.x}`,"",`What this challenges for financial services: ${W.f}`,"",
-    "Three questions:",...W.q.map((q,i)=>`${i+1}. ${q}`),"",
+    `An unexpected tension: ${W.x}`,"",`What this challenges for financial services: ${W.f}`,"",
+    "Three provocations:",...W.v.map(v=>`- ${v}`),"",
     `How we got here: Now (evidence): ${lead.now} | 2030s (plausible): ${W.p} | 2040s (speculative): ${W.s}`,"",
     "Choices: "+FORCES.map(f=>`${f.label}: ${f.stages[snap[f.id]-1][0]}`).join(" | "),""];
   subs.forEach((x,i)=>L.push(`SUB-FUTURE ${i+1}: ${x.t}`,x.what,`Story (illustrative), ${x.who}: ${x.story}`,`HMW: How might we ${x.hmw}`,""));

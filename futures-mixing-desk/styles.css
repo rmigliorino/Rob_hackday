@@ -88,13 +88,11 @@ button{font:inherit;cursor:pointer;color:inherit}
 .f-sec{display:flex;flex-direction:column;gap:10px;min-width:0}
 .f-deep{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 32px;align-items:start;padding:8px 6px 6px}
 @media (max-width:860px){.f-deep{grid-template-columns:minmax(0,1fr)}}
-.f-col{display:flex;flex-direction:column;gap:24px;min-width:0}
-.glimpse{background:var(--soft);border-radius:16px;padding:16px 18px;font-size:15px;line-height:1.55}
 .tension{border-radius:16px;padding:16px 18px;background:linear-gradient(170deg,color-mix(in srgb,var(--c2) 45%,var(--card)),var(--card) 90%);box-shadow:inset 0 0 0 1px var(--line)}
 .tension p{font-family:var(--f-serif);font-size:19px;line-height:1.35}
-.qlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:q}
-.qlist li{counter-increment:q;display:grid;grid-template-columns:2.4em minmax(0,1fr);gap:8px;font-family:var(--f-serif);font-size:19px;line-height:1.3}
-.qlist li::before{content:"Q" counter(q);font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;color:var(--muted);padding-top:5px}
+.provs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.provs li{font-family:var(--f-serif);font-size:20px;line-height:1.3;padding:12px 0;border-top:1px solid var(--line)}
+.provs li:first-child{border-top:0;padding-top:2px}
 .tl-tag{display:inline-block;font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-right:8px;vertical-align:1px}
 .wi .explore{font-size:12.5px;color:var(--muted)}
 .world{display:flex;flex-direction:column;gap:14px}
