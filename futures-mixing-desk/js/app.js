@@ -33,7 +33,6 @@ function unit(){return{ai:(st.ai-1)/2,gains:(st.gains-1)/2,earn:(st.earn-1)/2,cl
 /* Match answers to the nearest future by Euclidean distance; differences become "your version" notes. */
 function nearest(snap){const v=FORCES.map(f=>snap[f.id]);return FUTURES.map(F=>({F,d:Math.sqrt(F.p.reduce((a,x,i)=>a+(x-v[i])**2,0))})).sort((a,b)=>a.d-b.d);}
 function twists(F,snap){return FORCES.map((f,i)=>({id:f.id,diff:Math.abs(snap[f.id]-F.p[i])})).filter(x=>x.diff).sort((a,b)=>b.diff-a.diff).slice(0,2).map(x=>TWIST[x.id][snap[x.id]-1]);}
-const withCites=s=>s.replace(/ ?\[\[([A-Z0-9]+)\]\]/g,(m,k)=>" "+cites([k]));
 const level=s=>s>=.7?"Strong signal":s>=.5?"Building":"Faint";
 function code(snap){return FORCES.map(f=>f.ab+snap[f.id]).join(".");}
 
@@ -130,7 +129,7 @@ function render(){
       <span class="subtitle">Your generated future · signal ${cd}${close?` · equally close to <b>${next.t}</b>`:""}</span>
       <h2 class="caps">${W.t}</h2>
       <section class="f-sec"><span class="label">The world in a nutshell</span><p class="lede">${W.n}</p></section>
-      <p class="more">${withCites(W.d)}</p>
+      <p class="more">${W.d}</p>
       ${tw.length?`<div class="yours"><span class="label">Your version of this future</span>${tw.map(t=>`<p>${t}</p>`).join("")}</div>`:""}
       <div class="world">
         <button class="ghost playback" id="playBtn" type="button" aria-expanded="${!!showChoices}" aria-controls="worldList"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg><span>${showChoices?"Hide your choices":"Play back your choices"}</span></button>
@@ -200,7 +199,7 @@ function showSub(i){
   panel.hidden=false;
 }
 function summary(){
-  const {W,subs,snap}=generated,plain=s=>s.replace(/ ?\[\[[A-Z0-9]+\]\]/g,""),L=[`FUTURE: ${W.t}`,"",`The world in a nutshell: ${W.n}`,"",plain(W.d),"",
+  const {W,subs,snap}=generated,L=[`FUTURE: ${W.t}`,"",`The world in a nutshell: ${W.n}`,"",W.d,"",
     ...twists(W,snap).map(t=>`Your version: ${t}`),"",
     `An unexpected tension: ${W.x}`,"",`What this challenges for financial services: ${W.f}`,"",
     "Three provocations:",...W.v.map(v=>`- ${v}`),"",
