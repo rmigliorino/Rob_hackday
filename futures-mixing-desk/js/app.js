@@ -28,8 +28,21 @@ function updateStatus(){
   else s.textContent="All five set. Ready to generate.";
 }
 function onChange(){if(generated)dirty=true;updateStatus();}
-function nearest(){const v=FORCES.map(f=>st[f.id]);return FUTURES.map(F=>({F,d:Math.sqrt(F.p.reduce((a,x,i)=>a+(x-v[i])**2,0))})).sort((a,b)=>a.d-b.d);}
-function unit(){return{ai:(st.ai-1)/2,gains:(st.gains-1)/2,earn:(st.earn-1)/2,shock:(st.world-1)/2,climate:(st.climate-1)/2};}
+function unit(){return{ai:(st.ai-1)/2,gains:(st.gains-1)/2,earn:(st.earn-1)/2,climate:(st.climate-1)/2,
+  self:(st.society-1)/2,comm:st.society===2?1:0,inst:st.society===1?1:0};}
+/* Forces ranked by how far the choice sits from the middle; the lead force sets the look and the "Now" fact,
+   the next three supply the figures. The lead rotates among the extreme choices so "Now" varies between combinations. */
+const RANK_ORDER=["ai","gains","society","earn","climate"];
+function rankForces(snap){
+  const ranked=[...RANK_ORDER].sort((a,b)=>(snap[a]===2)-(snap[b]===2)),ext=ranked.filter(id=>snap[id]!==2),pool=ext.length?ext:ranked;
+  const lead=pool[+FORCES.map(f=>snap[f.id]).join("")%pool.length];
+  return [lead,...ranked.filter(id=>id!==lead)];
+}
+const stage=(id,snap)=>FORCES.find(f=>f.id===id).stages[snap[id]-1];
+function worldFor(snap){
+  const key=FORCES.map(f=>snap[f.id]).join(""),W=WORLDS[key],rank=rankForces(snap),look=LEAD_LOOK[rank[0]][snap[rank[0]]-1];
+  return {...W,key,rank,pal:look[0],mat:look[1]};
+}
 const level=s=>s>=.7?"Strong signal":s>=.5?"Building":"Faint";
 function code(snap){return FORCES.map(f=>f.ab+snap[f.id]).join(".");}
 
@@ -51,8 +64,8 @@ function pickSubs(random){
 }
 
 /* ---------- Tuning animation ---------- */
-function runTuner(F,snap,done){
-  const tuner=$("#tuner"),win=$("#tunerWin"),cv=$("#tunerCanvas"),P=PAL[F.pal],cd=code(snap),fin=+hz(cd+F.name);
+function runTuner(W,snap,done){
+  const tuner=$("#tuner"),win=$("#tunerWin"),cv=$("#tunerCanvas"),P=PAL[W.pal],cd=code(snap),fin=+hz(cd+W.t);
   win.style.setProperty("--c1",P[0]);win.style.setProperty("--c2",P[1]);
   $("#meters").innerHTML=FORCES.map((f,i)=>`<li><span class="mlab">CH 0${i+1} · ${f.label}</span><span class="meter" id="m${i}">${"<i></i>".repeat(12)}</span><span class="mval">${f.stages[snap[f.id]-1][0]}</span></li>`).join("");
   tuner.hidden=false;
@@ -92,7 +105,7 @@ function runTuner(F,snap,done){
       const m=document.getElementById("m"+i);if(m)[...m.children].forEach((c,j)=>c.classList.toggle("on",j<lvl));
       const li=m&&m.parentElement;if(li)li.classList.toggle("locked",t>=lock);});
     $("#tunerHz").textContent=(t<1?110+(fin-110)*e:fin).toFixed(1)+" HZ";
-    $("#tunerStatus").textContent=t<1?steps[Math.min(3,Math.floor(t*4))]+"…":`Locked on ${fin.toFixed(1)} Hz · ${F.name}`;
+    $("#tunerStatus").textContent=t<1?steps[Math.min(3,Math.floor(t*4))]+"…":`Locked on ${fin.toFixed(1)} Hz · ${W.t}`;
     if(t<1)requestAnimationFrame(frame);
     else setTimeout(()=>{tuner.hidden=true;done();},RM.matches?100:250);
   }
@@ -101,12 +114,12 @@ function runTuner(F,snap,done){
 
 function generate(){
   if(!complete()||tuning)return;
-  const ranked=nearest(),F=ranked[0].F,next=ranked[1].F,close=ranked[1].d-ranked[0].d<0.5;
-  generated={F,next,close,subs:pickSubs(false),snap:{...st},roll:0};
+  const snap={...st};
+  generated={W:worldFor(snap),subs:pickSubs(false),snap,roll:0};
   dirty=false;tuning=true;updateStatus();
   $("#out").hidden=false;$("#results").hidden=true;
   $("#out").scrollIntoView({behavior:RM.matches?"auto":"smooth",block:"start"});
-  runTuner(F,generated.snap,()=>{tuning=false;$("#results").hidden=false;render();updateStatus();});
+  runTuner(generated.W,snap,()=>{tuning=false;$("#results").hidden=false;render();updateStatus();});
 }
 function windowHTML(pal,mat,seed,tab,codeTxt,live){
   const p=PAL[pal];
@@ -116,21 +129,40 @@ function windowHTML(pal,mat,seed,tab,codeTxt,live){
     <span class="code">${codeTxt}</span></div>`;
 }
 function render(){
-  const {F,next,close,subs,snap,roll,showChoices}=generated,cd=code(snap),fhz=hz(cd+F.name);
+  const {W,subs,snap,roll,showChoices}=generated,cd=code(snap),fhz=hz(cd+W.t),lead=stage(W.rank[0],snap)[2];
+  const tag=t=>`<span class="tl-tag">${t}</span>`,P=PAL[W.pal];
+  $("#future").style.setProperty("--c1",P[0]);$("#future").style.setProperty("--c2",P[1]);
   $("#future").innerHTML=`
-    ${windowHTML(F.pal,F.mat,hash(cd+F.name),"2050",fhz+" HZ",true)}
+    ${windowHTML(W.pal,W.mat,hash(cd+W.t),"2050",fhz+" HZ",true)}
     <div class="card-body">
-      <span class="subtitle">Your generated future · signal ${cd}${close?` · close to <b>${next.name}</b>`:""}</span>
-      <h2 class="caps">${F.name}</h2>
-      <p class="lede">${F.lede}</p>
-      <p class="more">${F.more}</p>
+      <span class="subtitle">Your generated future · signal ${cd}</span>
+      <h2 class="caps">${W.t}</h2>
+      <section class="f-sec"><span class="label">The world in a nutshell</span><p class="lede">${W.n}</p></section>
       <div class="world">
         <button class="ghost playback" id="playBtn" type="button" aria-expanded="${!!showChoices}" aria-controls="worldList"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg><span>${showChoices?"Hide your choices":"Play back your choices"}</span></button>
-        <div class="world-list" id="worldList" ${showChoices?"":"hidden"}><span class="label">Life in this world · your five choices</span>${FORCES.map((f,n)=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>CH 0${n+1} · ${f.label}</small></span><span>${sg[1]} ${cites(sg[2])}</span></div>`}).join("")}</div>
+        <div class="world-list" id="worldList" ${showChoices?"":"hidden"}><span class="label">Your five choices</span>${FORCES.map((f,n)=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>CH 0${n+1} · ${f.label}</small></span><span>${sg[1]}</span><span class="explore">Explore: ${f.explore}</span></div>`}).join("")}</div>
       </div>
-      <div class="readouts">${F.figs.map(x=>`<div class="readout"><b>${x[0]}</b><span>${x[1]} ${cites(x[2])}</span></div>`).join("")}</div>
-      <div class="finlife"><span class="chip">Financial life in this world</span><p>${F.fin}</p></div>
-      <p class="refs">Built from: ${F.refs.map(r=>`${r[0]} ${cites(r[1])}`).join(" · ")}</p>
+      <div class="readouts">${W.rank.slice(1,4).map(id=>{const x=stage(id,snap)[2];return `<div class="readout"><b>${x.fig[0]}</b><span>${x.fig[1]} ${cites([x.src[0]])}</span></div>`}).join("")}</div>
+    </div>
+    <div class="f-deep">
+      <div class="f-col">
+        <section class="f-sec"><span class="label">A glimpse of everyday life</span><div class="glimpse">${W.l}</div></section>
+        <section class="f-sec"><span class="label">An unexpected tension</span><div class="tension"><p>${W.x}</p></div></section>
+      </div>
+      <section class="f-sec"><span class="label">How we got here</span>
+        <ol class="timeline">
+          <li><span class="when">Now</span><span>${tag("Evidence")}${lead.now} ${cites(lead.src.slice(-1))}</span></li>
+          <li><span class="when">2030s</span><span>${tag("Plausible")}${W.p}</span></li>
+          <li><span class="when">2040s</span><span>${tag("Speculative")}${W.s}</span></li>
+          <li class="end"><span class="when">2050</span><span>${W.t}</span></li>
+        </ol>
+      </section>
+    </div>
+    <div class="f-deep">
+      <section class="f-sec finlife"><span class="chip">What this challenges for financial services</span><p>${W.f}</p></section>
+      <section class="f-sec"><span class="label">Three questions for your workshop</span>
+        <ol class="qlist">${W.q.map(q=>`<li>${q}</li>`).join("")}</ol>
+      </section>
     </div>`;
   $("#subs").innerHTML=subs.map((x,i)=>{
     const look=DRIVER_LOOK[x.d],p=PAL[look[0]];
@@ -168,21 +200,20 @@ function showSub(i){
     <div class="sp-grid">
       <div class="sp-col">
         <section class="sp-sec"><span class="sp-label">In 2050</span><p class="what">${x.what}</p></section>
-        <section class="sp-sec"><span class="sp-label">How we get there</span>
-          <ol class="timeline">${x.tl.map(t=>`<li><span class="when">${t[0]}</span><span>${t[1]} ${cites(t[2])}</span></li>`).join("")}<li class="end"><span class="when">2050</span><span>${x.t}</span></li></ol>
-        </section>
+        <div class="story"><span class="who">${x.who} · illustrative</span>${x.story}</div>
       </div>
       <div class="sp-col">
-        <div class="story"><span class="who">${x.who} · illustrative</span>${x.story}</div>
         <div class="hmw"><span class="chip">Financial services · How might we</span><p>How might we ${x.hmw}</p></div>
       </div>
     </div>`;
   panel.hidden=false;
 }
 function summary(){
-  const {F,subs,snap}=generated,L=[`FUTURE: ${F.name}`,F.lede,F.more,"",
-    "Choices: "+FORCES.map(f=>`${f.label}: ${f.stages[snap[f.id]-1][0]}`).join(" | "),
-    "",`Financial life: ${F.fin}`,""];
+  const {W,subs,snap}=generated,lead=stage(W.rank[0],snap)[2],L=[`FUTURE: ${W.t}`,"",`The world in a nutshell: ${W.n}`,"",
+    `A glimpse of everyday life: ${W.l}`,"",`An unexpected tension: ${W.x}`,"",`What this challenges for financial services: ${W.f}`,"",
+    "Three questions:",...W.q.map((q,i)=>`${i+1}. ${q}`),"",
+    `How we got here: Now (evidence): ${lead.now} | 2030s (plausible): ${W.p} | 2040s (speculative): ${W.s}`,"",
+    "Choices: "+FORCES.map(f=>`${f.label}: ${f.stages[snap[f.id]-1][0]}`).join(" | "),""];
   subs.forEach((x,i)=>L.push(`SUB-FUTURE ${i+1}: ${x.t}`,x.what,`Story (illustrative), ${x.who}: ${x.story}`,`HMW: How might we ${x.hmw}`,""));
   L.push("Sources: see the Futures Mixing Desk source list.");return L.join("\n");
 }

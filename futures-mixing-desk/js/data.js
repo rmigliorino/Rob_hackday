@@ -1,4 +1,4 @@
-/* Content: sources, forces, futures and sub-futures. Every figure must carry a source key. */
+/* Content: sources, forces, worlds and sub-futures. Every figure must carry a source key. */
 const SRC = {
   B50:{t:"BCG Henderson Institute, Beyond Tomorrow: Four Scenarios for the World of 2050 (Apr 2026)",u:"https://www.bcg.com/publications/2026/beyond-tomorrow-four-scenarios-for-the-world-of-2050"},
   BPR:{t:"BCG press release on Scenarios 2050 (Apr 2026)",u:"https://www.bcg.com/press/20april2026-global-economy-four-different-directions-2050"},
@@ -21,7 +21,8 @@ const SRC = {
   EXP:{t:"Experian, first-time buyer data (2026)",u:"https://2025.financialreporter.co.uk/over-half-of-first-time-buyers-face-paying-mortgages-into-retirement.html"},
   UKL:{t:"UK Finance later-life lending, Q2 2026 (via Mortgage Professional)",u:"https://www.mpamag.com/uk/premium/retired-and-borrowing-how-the-over-55s-market-is-going-mainstream/590359"},
   RFP:{t:"Resolution Foundation, parental wealth and home ownership (2018)",u:"https://www.mortgagesolutions.co.uk/news/2018/12/04/parent-wealth-nearly-as-important-as-earnings-for-young-homeowners"},
-  RFY:{t:"Resolution Foundation, young adults living with parents (2025)",u:"https://www.resolutionfoundation.org/?p=46472"}
+  RFY:{t:"Resolution Foundation, young adults living with parents (2025)",u:"https://www.resolutionfoundation.org/?p=46472"},
+  OEC:{t:"OECD, Survey on Drivers of Trust in Public Institutions 2026 Results: United Kingdom",u:"https://www.oecd.org/en/publications/oecd-survey-on-drivers-of-trust-in-public-institutions-2026-results_c88c8869-en/united-kingdom_1d0c63db-en.html"}
 };
 const KEYS=Object.keys(SRC), num=k=>KEYS.indexOf(k)+1;
 
@@ -33,166 +34,142 @@ const PAL={
 };
 
 
-/* Five uncertainties, three stages each: [choice, what it means, sources] */
+/* Five forces, three choices each: [choice, what it means, sourced fact].
+   fact.fig is a readout for the future card; fact.now is the "Now" step of How we got here. */
 const FORCES=[
- {id:"ai",ab:"AI",label:"AI at work",q:"How much work does AI do?",help:"From a helpful tool to running routine work.",def:3,stages:[
-  ["Helps out","Most workers use AI daily, as 74% of frontline staff now do, but jobs keep their shape.",["BAW"]],
-  ["Reshapes jobs","About half of jobs are redesigned around AI, the scale BCG models within two to three years.",["BRS"]],
-  ["Runs routine work","Agents absorb structured work. 10–15% of jobs disappear, with back-office and entry roles first.",["BRS","IPR"]]]},
- {id:"gains",ab:"GN",label:"Who benefits",q:"Who benefits from the gains?",help:"Do productivity gains stay at the top or spread?",def:2,stages:[
-  ["A few","The richest 1% hold close to half of global wealth and the middle class shrinks.",["B50"]],
-  ["Some","Output grows while displaced workers carry the cost. IPPR's central case: 4.4m UK jobs lost, GDP up 6.3%.",["IPR"]],
-  ["Most people","Workers are augmented, not replaced, and productivity funds a wider safety net.",["IPR","B50"]]]},
- {id:"earn",ab:"ER",label:"How people earn",q:"How do people earn a living?",help:"Steady employment or income from many places.",def:3,stages:[
-  ["One steady job","Most people hold one job; side income stays marginal, as with the 3.7% holding second jobs today.",["ONJ"]],
-  ["A mix","Employment blends with platform work, which 14.7% of adults did weekly in 2021.",["TUC"]],
-  ["Many gigs","Short-term and gig contracts become the default as routine knowledge work is automated.",["BPR"]]]},
- {id:"world",ab:"WO",label:"World stability",q:"How stable is the world?",help:"Trade, conflict and cooperation between countries.",def:2,stages:[
-  ["Calm","Major economies cooperate and global AI standards are enforced.",["B50"]],
-  ["Bumpy","Rivalry grows but trade stays open for commercial reasons.",["BPR"]],
-  ["Shocks","Rival blocs form, trade falls to about 35% of GDP and defence rises to about 7%.",["BPR"]]]},
- {id:"climate",ab:"CL",label:"Climate action",q:"How hard do we act on climate?",help:"From delay and damage to a climate-first economy.",def:1,stages:[
-  ["Delayed","Warming runs fast in a low-regulation world. Damage reaches homes and jobs.",["B50"]],
-  ["Uneven","Some sectors decarbonise, others stall. Green jobs grow in pockets.",["WFG"]],
-  ["Climate-first","Fossil fuels fall from 81% to 35% of energy and warming stabilises near 1.8°C.",["BPR"]]]}
+ {id:"ai",ab:"AI",label:"Who decides",q:"Who is making the decisions?",help:"How much control do people hand over to AI?",
+  explore:"How this changes agency, accountability, trust and relationships with institutions.",stages:[
+  ["Human-led","AI assists, but people remain in control.",{fig:["74%","of frontline staff already use AI regularly, mostly as an assistant"],now:"AI is already an everyday assistant: 74% of frontline staff use it regularly, while people keep the final say.",src:["BAW"]}],
+  ["Shared control","People and AI make decisions together.",{fig:["47%","of workers spend more time directing or reviewing AI than doing the task"],now:"47% of workers already spend more time directing or reviewing AI than doing the work themselves.",src:["BAW"]}],
+  ["AI-led","AI independently manages many everyday decisions and activities.",{fig:["3 in 4","employees expect AI agents to be vital to their future success"],now:"Three in four employees already expect AI agents to be vital to their future success.",src:["BA5"]}]]},
+ {id:"gains",ab:"PR",label:"Who prospers",q:"Who shares in the prosperity?",help:"How widely is wealth and opportunity distributed?",
+  explore:"Implications for financial security, ownership, affordability, social mobility and access to financial services.",stages:[
+  ["Concentrated","Wealth and opportunity accumulate among a small minority.",{fig:["~½","of global wealth held by the richest 1% in BCG's most unequal 2050 scenario, from about ⅓"],now:"Young people with property-owning parents are almost three times as likely to own a home by 30.",src:["B50","RFP"]}],
+  ["Uneven","Some groups benefit significantly more than others.",{fig:["4.4m","UK jobs lost in IPPR's central AI case, even as GDP rises 6.3%"],now:"Access to change is already uneven: 41% of degree holders can work hybrid, against 4% of people with no qualifications.",src:["IPR","ONH"]}],
+  ["Widespread","Economic opportunity and prosperity are shared more broadly.",{fig:["+13%","UK GDP with no job losses if AI augments workers, IPPR's best case"],now:"In the UK four-day-week pilot, 89% of firms kept the shorter week a year on.",src:["IPR","AUT"]}]]},
+ {id:"earn",ab:"ER",label:"How people earn",q:"How do people earn a living?",help:"How predictable is income, and where does it come from?",
+  explore:"What financial stability means when traditional employment is no longer the universal norm.",stages:[
+  ["Stable jobs","Traditional employment remains the primary source of income.",{fig:["52%","of new first-time buyers' mortgages run to age 65 or later, assuming long, steady careers"],now:"Most people still earn from one job: 3.7% of workers hold a second one.",src:["EXP","ONJ"]}],
+  ["Mixed income","People combine employment with other income streams.",{fig:["1.29m","people in the UK hold a second job in 2026"],now:"Weekly platform work rose from 5.8% of adults in 2016 to 14.7% in 2021.",src:["ONJ","TUC"]}],
+  ["Fluid work","Portfolio careers, independent work and new income models become commonplace.",{fig:["38%","of self-employed people report a mortgage refused because of volatile income"],now:"Weekly platform work rose from 5.8% of adults in 2016 to 14.7% in 2021.",src:["TML","TUC"]}]]},
+ {id:"society",ab:"SO",label:"What holds us together",q:"What holds society together?",help:"Who and what do people turn to for trust, support and security?",
+  explore:"How trust, belonging, responsibility and expectations of financial institutions might change.",stages:[
+  ["Institutions","Established organisations remain central to everyday life.",{fig:["33%","of UK adults have high or moderately high trust in national government"],now:"Trust in institutions starts low: a third of UK adults have high or moderately high trust in national government.",src:["OEC"]}],
+  ["Communities","Networks, local groups and collective systems become more influential.",{fig:["~⅔","of people in their early 20s live with their parents"],now:"Families already act as a safety net: nearly two-thirds of people in their early 20s live with their parents.",src:["RFY"]}],
+  ["Individuals","People increasingly rely on themselves and their own resources.",{fig:["21%","of UK adults have less than £1,000 to fall back on in an emergency"],now:"Self-reliance starts from thin buffers: one in ten UK adults has no cash savings at all.",src:["FCB","FCA"]}]]},
+ {id:"climate",ab:"CL",label:"Climate response",q:"How does society respond to climate change?",help:"How do economies balance adaptation and transition?",
+  explore:"Implications for housing, infrastructure, insurance, asset values, lending and ownership.",stages:[
+  ["React","Responses are largely driven by immediate crises and damage.",{fig:["~1.3°C","of warming already, rising fast in BCG's low-regulation scenario"],now:"Warming already sits around 1.3°C above pre-industrial levels.",src:["B50"]}],
+  ["Adapt","Society invests in resilience while gradually transitioning.",{fig:["34m","green-transition jobs worldwide expected by 2030"],now:"The WEF expects the green transition to create 34 million jobs worldwide by 2030.",src:["WFG"]}],
+  ["Transform","Climate priorities fundamentally reshape economies and lifestyles.",{fig:["81→35%","fossil fuels' share of global energy in BCG's climate-first scenario"],now:"Fossil fuels still supply about 81% of global energy.",src:["BPR"]}]]}
 ];
 
-/* Eight archetypes. p = profile across [ai,gains,earn,world,climate] on 1–3 */
-const FUTURES=[
- {name:"The Leisure Dividend",more:"Most people work a shorter week, and many work in shorter stretches spread across a longer life. Productivity gains fund public services and a stronger safety net, so losing a job is a disruption rather than a crisis. Status shifts from hours worked to how people spend their time: care, learning, community and second pursuits. The pressure points are meaning, fairness between generations and planning a life where earning is no longer the centre.",pal:"peri",mat:"glass",p:[3,3,2,1,3],
-  lede:"AI carries much of the routine work and the gains are shared. People work far fewer hours on similar pay. The hard question becomes what a good life, and a good financial plan, looks like when work takes up less of it.",
-  figs:[["1,600 hrs","a year on average, down from 2,100 (global scenario)",["B50"]],["+13%","UK GDP with no job losses if AI augments workers",["IPR"]],["89%","of UK pilot firms still on a four-day week after a year",["AUT"]]],
-  fin:"Income is stable but arrives in new forms. Customers have time to engage with money and expect planning rather than products. Retirement blurs as work shrinks across the whole of life.",
-  refs:[["BCG's AI Abundance",["B50"]],["IPPR full augmentation",["IPR"]],["UK four-day week pilot",["AUT"]]]},
- {name:"Winner-Takes-Most",more:"A small group of firms and owners controls the most capable AI systems and the data behind them. Highly skilled people do very well, while many others move between short contracts, platform work and spells without work. Public budgets are stretched and safety nets are thin. Where you start, and what your family owns, matters more than what you earn, and trust in institutions, banks included, is low.",pal:"steel",mat:"metal",p:[3,1,3,2,1],
-  lede:"Technology races ahead under light regulation. A minority captures most of the gains, routine knowledge work is automated and short-term contracts become normal.",
-  figs:[["~½","of global wealth held by the richest 1%, from about ⅓",["B50"]],["7.9m","UK jobs lost in IPPR's worst case, with no GDP gain",["IPR"]],["14.7%","of adults doing platform work weekly by 2021",["TUC"]]],
-  fin:"Financial lives split. Affluent customers want wealth, tax and inheritance services. Many others juggle volatile income, thin savings and costly credit, and family money decides who owns a home.",
-  refs:[["BCG's Digital Darwinism",["B50"]],["IPPR full displacement",["IPR"]],["TUC platform work research",["TUC"]]]},
- {name:"The Patchwork Economy",more:"Few people describe themselves as having one job. A typical working week mixes a part-time contract, platform tasks and a small side business, with AI handling scheduling, admin and some of the work itself. Employers carry less responsibility for pensions, sick pay and training, so individuals carry more. Life feels flexible in good months and precarious in bad ones, and planning more than a few months ahead is hard.",pal:"lime",mat:"studded",p:[2,2,3,2,2],
-  lede:"AI reshapes jobs without removing them wholesale, but security erodes. People stitch income together from contracts, platforms and second jobs, and plan month to month.",
-  figs:[["50–55%","of US jobs reshaped by AI within two to three years",["BRS"]],["1.29m","people in the UK with second jobs in 2026",["ONJ"]],["24%","of UK adults with low financial resilience",["FCA"]]],
-  fin:"Payday disappears as the organising idea of money. Customers need products that read irregular income, smooth cashflow and protect against gaps, and they switch providers easily when they don't.",
-  refs:[["BCG on reshaped and divergent roles",["BRS"]],["TUC platform work research",["TUC"]],["ONS second-job data",["ONJ"]]]},
- {name:"Fortress Economies",more:"Countries put self-reliance in energy, food, technology and defence first. Supply chains are shorter and goods cost more, but jobs in manufacturing, infrastructure and security come back. AI is adopted carefully within national rules, so it changes work slowly. People move less, stay in jobs longer and save cautiously, and governments steer savings toward investment at home.",pal:"magenta",mat:"ribbon",p:[1,2,1,3,2],
-  lede:"Rival blocs, shorter supply chains and heavy security spending. Growth is slow, real incomes barely rise, and work shifts toward domestic industry and defence.",
-  figs:[["~1.8%","global growth a year, the slowest scenario",["BPR"]],["~7%","of GDP on defence, from 2.4% today",["B50"]],["57→35%","trade as a share of global GDP",["BPR"]]],
-  fin:"Households hunker down: fewer moves, longer terms, savings kept for emergencies where possible. Saving and investing at home may win political backing as states seek self-sufficiency.",
-  refs:[["BCG's Battling Blocs",["B50"]]]},
- {name:"The Storm Years",more:"Floods, heatwaves and supply shocks arrive more often and overlap with conflict abroad and price spikes at home. Each shock is survivable, but together they leave little time to recover. The gains from AI go mainly to people who were already secure, so many households take repeated hits with few reserves. Insurance gets harder to find in exposed areas, and public support is stretched across too many emergencies at once.",pal:"coral",mat:"pearls",p:[2,1,2,3,1],
-  lede:"Climate damage and geopolitical shocks arrive together, and the gains from technology stay with a few. Households take repeated hits to homes, bills and jobs, with thin buffers to absorb them.",
-  figs:[["~1.3°C","warming today, rising fast in the low-regulation future",["B50"]],["~4–7%","of GDP on defence as the order fragments",["BPR"]],["24%","of UK adults already with low financial resilience",["FCA"]]],
-  fin:"Protection moves to the centre of financial life: insurance that stays available, emergency savings that actually exist, and support that arrives fast after a shock.",
-  refs:[["BCG's Digital Darwinism and Battling Blocs",["B50"]],["FCA Financial Lives",["FCA"]]]},
- {name:"The Resilience Decades",more:"After a run of damaging weather, climate becomes the organising principle of the economy. Carbon prices, building standards and adaptation plans reach every household, and large numbers of jobs grow in energy, retrofit, water and repair. The costs of the transition are broadly shared, but it is expensive and disruptive. Where people live, how they travel and what they buy all carry a visible climate cost.",pal:"gold",mat:"branch",p:[2,3,1,1,3],
-  lede:"Extreme weather forces a climate-first economy. Carbon markets, energy standards and adaptation decide where people live, what homes are worth and which jobs grow.",
-  figs:[["~1.8°C","warming stabilises, from about 1.3°C today",["B50"]],["81→35%","fossil fuels' share of global energy",["BPR"]],["34m","green-transition jobs worldwide by 2030",["WFG"]]],
-  fin:"Every home, car and pension becomes a climate decision. Customers expect finance that makes the transition affordable and insurance that still works in a riskier climate.",
-  refs:[["BCG's Climate Coalition",["B50"]],["WEF Future of Jobs 2025",["WFG"]]]},
- {name:"The Managed Transition",more:"Government, employers and unions agree to share the costs of automation. Retraining is funded, income support bridges the gaps between roles, and most people stay in work, though rarely in the same job for long. AI changes what almost everyone does day to day. The system works but asks a lot: people keep learning throughout their lives, and a career becomes a sequence of planned changes rather than a single path.",pal:"sky",mat:"glass",p:[3,3,1,2,2],
-  lede:"AI reshapes most jobs, but employers and government invest in retraining and keep people in work. Change is fast but cushioned, and careers become a series of planned resets.",
-  figs:[["170m / 92m","jobs created and displaced worldwide by 2030",["WEF"]],["50–55%","of US jobs reshaped by AI within two to three years",["BRS"]],["0 vs 7.9m","UK job losses: IPPR best and worst cases",["IPR"]]],
-  fin:"Customers expect support through transitions: funded learning, income smoothing between roles and protection that covers retraining as well as illness.",
-  refs:[["BCG on reshaped jobs",["BRS"]],["IPPR policy-led scenarios",["IPR"]],["WEF Future of Jobs 2025",["WEF"]]]},
- {name:"The Long Plateau",more:"Adoption is patchy. Many firms use AI for narrow tasks but few redesign how they work, so productivity gains are modest and arrive late. Work, pay and housing look much as they do now, with the same pressures on young people, renters and anyone with thin savings. Climate and geopolitical risks build slowly in the background. The danger is complacency: change still comes, just later and less evenly.",pal:"peach",mat:"studded",p:[1,2,1,2,2],
-  lede:"Change is slower than the hype. AI stays a helpful tool, productivity arrives late and working life looks a lot like today, with today's pressures intact.",
-  figs:[["~50%","frontline AI use, flat for several years before 2026",["BAW"]],["24%","of UK adults with low financial resilience",["FCA"]],["28%","of GB workers hybrid working",["ONH"]]],
-  fin:"Today's problems persist: stretched affordability, thin savings and slow pension build-up. The opportunity is better execution on familiar needs, not reinvention.",
-  refs:[["BCG AI at Work",["BAW"]],["BCG on adoption lag",["BRS"]],["FCA Financial Lives",["FCA"]]]}
-];
+/* 243 pre-written worlds, one per combination, keyed by the five choices in FORCES order (e.g. "13231").
+   Filled by js/worlds/*.js. Fields: t title, n nutshell, l everyday life, x tension,
+   f what it challenges for financial services, q three questions, p 2030s (plausible), s 2040s (speculative). */
+const WORLDS={};
 
-const DRIVER_LOOK={ai:["peri","glass"],gains:["magenta","ribbon"],earn:["peach","studded"],time:["gold","glass"],life:["coral","pearls"],world:["steel","metal"],climate:["lime","branch"]};
-const DRIVER_LABEL={ai:"AI at work",gains:"Who benefits",earn:"How people earn",time:"AI and who benefits",life:"Longer lives",world:"World stability",climate:"Climate action"};
+/* Look of the main future, set by its lead force and choice: [palette, material] */
+const LEAD_LOOK={
+  ai:[["sky","glass"],["peri","glass"],["magenta","ribbon"]],
+  gains:[["steel","metal"],["peach","studded"],["gold","branch"]],
+  earn:[["sky","studded"],["lime","studded"],["peach","ribbon"]],
+  society:[["steel","metal"],["coral","pearls"],["magenta","glass"]],
+  climate:[["coral","pearls"],["lime","branch"],["gold","branch"]]
+};
+
+const DRIVER_LOOK={ai:["peri","glass"],gains:["magenta","ribbon"],earn:["peach","studded"],time:["gold","glass"],life:["coral","pearls"],society:["sky","pearls"],climate:["lime","branch"]};
+const DRIVER_LABEL={ai:"Who decides",gains:"Who prospers",earn:"How people earn",time:"Decisions and prosperity",life:"Longer lives",society:"What holds us together",climate:"Climate response"};
 
 const SUBS=[
  {t:"The four-day household",d:"time",areas:["Income","Saving","Tax"],
   s:u=>.5*u.ai+.5*u.gains,
   what:"Many full-time staff move to four days without a pay cut. Income stays the same but the week changes shape, and so does what people do with the fifth day: care, learning, rest or a second income.",
-  tl:[["Now","In the UK pilot, 89% of firms kept the four-day week a year on; 51% made it permanent.",["AUT"]],["2030s","Shorter weeks spread through firms that redesign work around AI and have time to give back.",["BAW"]],["2040s","In the most automated futures, annual hours fall by about a quarter.",["B50"]]],
   who:"Priya, 33, product designer",story:"Priya works Monday to Thursday on full pay. Fridays started as rest and became a small craft business through an online marketplace. Her bank now sees two incomes and she faces a tax bill she didn't plan for. Her pension still assumes a 40-hour working life.",
   hmw:"help people turn a free day into lasting financial resilience, whether they earn, learn or rest with it?"},
  {t:"Many incomes, one person",d:"earn",areas:["Income","Credit","Protection"],
   s:u=>.85*u.earn+.15*(1-u.gains),
   what:"Income arrives from several places at once: a contract, two platforms, a spare room, a side business. Each is real and none is predictable, yet most financial products still see only the main job.",
-  tl:[["Now","Weekly platform work rose from 5.8% of adults in 2016 to 14.7% in 2021; 1.29m people hold second jobs.",["TUC","ONJ"]],["2030s","38% of self-employed people already report a mortgage refused for volatile income. Credit, insurance and savings face the same gap.",["TML"]],["2040s","In low-regulation futures, gig and short contracts become the default.",["BPR"]]],
   who:"Marcus, 36, designer and courier",story:"Marcus earns from a two-day design contract, a delivery app and a tutoring platform. Over 18 months he earns well, but no two months match. His credit limit was cut after a quiet January. He can't find income protection that covers platform work, so he budgets in a spreadsheet he rebuilds every quarter.",
   hmw:"give people one picture of income from every source, and let saving, credit and protection flex with it month to month?"},
  {t:"Adulthood starts later",d:"ai",areas:["Saving","Credit","Pensions"],
   s:u=>.5*u.ai+.5*(1-u.gains),
   what:"AI absorbs much of the structured work that used to train graduates. Entry roles thin out, so stable earnings start later. People live with parents longer and build credit, savings and pensions later too.",
-  tl:[["Now","Nearly two-thirds of people in their early 20s live with their parents. The average first-time buyer is 34.7.",["RFY","EXP"]],["2030s","Entry-level and junior positions are the most exposed in roles where AI substitutes for people.",["BRS","IPR"]],["2040s","Firms that kept junior pipelines compete for scarce experienced talent.",["BRS"]]],
   who:"Ellie, 27, accounting graduate",story:"Ellie graduated as junior analyst roles were cut and now works short contracts. She pays her parents rent by bank transfer, which no credit file records. She has a small Lifetime ISA and opted out of her workplace pension to cover her phone and travel.",
   hmw:"help young adults build credit, savings and a pension before their first stable job arrives?"},
  {t:"The mid-career reset",d:"ai",areas:["Credit","Saving","Protection"],
   s:u=>.8*u.ai+.2*u.earn,
   what:"Most jobs keep their title but change their content. Retraining stops being a one-off and becomes a recurring life event, often with a gap in income between one version of a career and the next.",
-  tl:[["Now","BCG models 50–55% of US jobs reshaped by AI within two to three years.",["BRS"]],["2030s","WEF expects disruption equal to 22% of jobs by 2030: 170m roles created and 92m displaced.",["WEF"]],["2040s","More of each job is directing AI: 47% of workers already spend more time on that than on doing the work.",["BAW"]]],
   who:"Dev, 45, claims handler",story:"Dev's role is being rebuilt around AI agents, so he takes six months out for a data course. His savings cover four. He pauses his pension, raises his overdraft and puts the fees on a credit card. A year later he earns more than before and is still paying the course off.",
   hmw:"fund a mid-career reset the way we fund a home: planned ahead, protected and repaid from the higher income it creates?"},
  {t:"Shocks without warning",d:"gains",areas:["Everyday money","Credit","Protection"],
-  s:u=>.55*u.ai+.3*(1-u.gains)+.15*u.shock,
+  s:u=>.55*u.ai+.3*(1-u.gains)+.15*u.self,
   what:"Where demand is fixed, efficiency turns into job losses, often in waves. Contact centres, back offices and routine analysis go first, and households with thin buffers fall behind within weeks.",
-  tl:[["Now","24% of UK adults have low financial resilience; one in ten has no cash savings.",["FCA"]],["2030s","BCG puts 10–15% of US jobs at risk of elimination within four to five years.",["BRS"]],["2040s","Without policy, IPPR's worst case sees 7.9m UK jobs lost and no GDP gain.",["IPR"]]],
   who:"Sam, 41, contact-centre lead",story:"Sam's team is cut in a single week. He has £800 saved, a car on finance and a credit card he used to clear in full. Six weeks later he pays the minimum, has paused his pension and uses buy-now-pay-later for school uniforms. None of his providers know anything has changed.",
   hmw:"spot an income shock across a customer's whole financial life and respond within days, not at the first missed payment?"},
  {t:"Family money decides",d:"gains",areas:["Saving","Home","Inheritance"],
-  s:u=>.85*(1-u.gains)+.15*u.ai,
+  s:u=>.7*(1-u.gains)+.15*u.ai+.15*u.self,
   what:"When gains concentrate, family wealth matters as much as earnings. Money moves between generations both ways: deposits and gifts go down, care costs and support go up.",
-  tl:[["Now","Young people with property-owning parents are almost three times as likely to own a home by 30.",["RFP"]],["2030s","The middle class shrinks as AI gains go to firms and those who own them.",["BPR"]],["2040s","In the most unequal future, the richest 1% hold nearly half of global wealth.",["B50"]]],
   who:"Zara and Josh, both 29",story:"Zara and Josh earn the same salary. Zara buys a flat with a family gift, and her parents' adviser sets up her pension. Josh rents, saves into an ISA nobody else can add to, and quietly helps his parents with their bills. Same income, opposite financial lives.",
   hmw:"make support between generations, from gifts and guarantees to shared savings and inheritance, planned, fair and safe for everyone involved?"},
  {t:"Income without an employer",d:"gains",areas:["Income","Protection","Credit"],
   s:u=>.75*u.gains+.25*u.ai,
   what:"If productivity gains are shared through the state or through ownership, more household income comes from somewhere other than a payslip: top-ups, dividends, shorter-hours guarantees. It is reliable, but every product built around salaries struggles to read it.",
-  tl:[["Now","IPPR's best case: no UK jobs lost and GDP up 13% (about £306bn a year) if workers are augmented.",["IPR"]],["2030s","Policy debate shifts to how gains fund support for an ageing population.",["B50"]],["2040s","In the abundance future, productivity growth of 5.7% a year funds an enlarged safety net.",["B50"]]],
   who:"Ana, 50, part-time teacher",story:"Ana works three days a week. Part of her household income is a state productivity top-up guaranteed for life. Her budgeting app files it as other. Her insurer won't price income protection on it, and lenders treat it as unearned.",
   hmw:"recognise, protect and build on income that doesn't come from an employer?"},
  {t:"Finances that run to 75",d:"life",areas:["Pensions","Home","Care"],
-  s:u=>.5+.3*(1-u.gains)+.2*u.shock,
+  s:u=>.5+.3*(1-u.gains)+.2*u.inst,
   what:"Working lives, debts and retirements overlap. People borrow later, repay into their seventies, change careers in their fifties and pay for parents' care while still paying for their own home.",
-  tl:[["Now","21% of new first-time buyers take terms over 35 years; 52% will be 65 or older when the mortgage ends.",["UKF","EXP"]],["2030s","Lending to over-55s reached 37,300 loans in Q2 2026, up 13.4% in a year.",["UKL"]],["2040s","Employers build for intergenerational teams and longer, more flexible careers.",["B50"]]],
   who:"Tom and Jo, 58",story:"Tom and Jo bought at 34 on a 37-year term. Now Jo's mum needs care, Tom is changing careers, and their pension forecasts still assume they stop at 67. Their mortgage, pensions, savings and care costs sit with five providers, and none can see the whole picture.",
   hmw:"plan borrowing, pensions, care and drawdown as one lifelong picture instead of separate products?"},
- {t:"The long squeeze",d:"world",areas:["Everyday money","Saving","Credit"],
-  s:u=>.85*u.shock+.15*(1-u.gains),
+ {t:"The long squeeze",d:"gains",areas:["Everyday money","Saving","Credit"],
+  s:u=>.6*(1-u.gains)+.25*(1-u.climate)+.15*u.inst,
   what:"When security comes first, growth slows and public money goes to defence and pensions. Real incomes rise slowly for years. Households hold on: fewer moves, longer terms and more credit for the unexpected.",
-  tl:[["Now","1.29m people in the UK hold second jobs to top up income.",["ONJ"]],["2030s","Defence spending heads toward 7% of GDP and trade toward 35%.",["B50","BPR"]],["2040s","Global growth settles near 1.8% a year, the slowest of BCG's futures.",["BPR"]]],
   who:"Leah, 39, nurse",story:"Leah's pay has risen more slowly than prices for most of a decade. She hasn't moved, has renewed on a longer term twice and keeps a credit card for car repairs. She wants to save, but every month ends at zero.",
   hmw:"help households stay resilient through a decade of flat real incomes without nudging them into more debt?"},
  {t:"The home as a climate risk",d:"climate",areas:["Home","Protection","Pensions"],
-  s:u=>.7*(1-u.climate)+.3*u.shock,
+  s:u=>.75*(1-u.climate)+.25*u.self,
   what:"With warming running fast and adaptation patchy, physical risk reaches ordinary household finances: insurance premiums, repair bills, home values and even where people can afford to live.",
-  tl:[["Now","Warming is about 1.3°C above pre-industrial levels.",["B50"]],["2030s","A run of extreme weather events in the late 2020s tests homes and insurers.",["BPR"]],["2040s","In the low-regulation future, the world keeps warming rapidly.",["B50"]]],
   who:"Ben, 52, lives by the river",story:"Ben's street has flooded twice in three years. His home insurance premium has more than doubled and his savings went on the last repair. Valuers now mark his home down, so he is weighing an early pension withdrawal to fund a move.",
   hmw:"help households see, price and reduce the climate risk in their finances before the damage arrives?"},
  {t:"Retrofit and the green payslip",d:"climate",areas:["Home","Credit","Income"],
-  s:u=>.85*u.climate+.15*(1-u.shock),
+  s:u=>.85*u.climate+.15*u.comm,
   what:"A climate-first economy puts energy performance into every home decision and creates large numbers of local jobs in installation, repair and resilience. Homes, bills and incomes become linked.",
-  tl:[["Now","WEF expects the green transition to create 34 million jobs worldwide by 2030.",["WFG"]],["2030s","Carbon markets spread to most major economies by 2040.",["BPR"]],["2040s","Fossil fuels fall from 81% to 35% of global energy.",["BPR"]]],
   who:"Halima, 46, trainee installer",story:"Halima retrains as a heat-pump installer through a funded apprenticeship. Her own house needs work to meet the new energy standard. Her bills fall once it's done, but the upfront cost lands in the same year her income dipped during training.",
   hmw:"join up retrofit finance, energy savings and new green incomes into one offer that pays for itself?"},
  {t:"Agents with your money",d:"ai",areas:["Everyday money","Payments","Saving"],
-  s:u=>.9*u.ai+.1*u.gains,
+  s:u=>.9*u.ai+.1*u.self,
   what:"People already spend more time directing AI than doing tasks themselves at work. That habit is likely to move into personal finance: agents that compare, switch, pay and save on a customer's behalf. This extends today's workplace trend; it is not yet measured.",
-  tl:[["Now","74% of frontline staff use AI regularly; 47% spend more time directing or reviewing AI than doing the work.",["BAW"]],["2030s","Three in four employees already expect AI agents to be vital to their future success.",["BA5"]],["2040s","In the abundance future, AI reshapes leisure and daily life as well as work.",["B50"]]],
   who:"Femi, 38, operations manager",story:"Femi manages AI agents all day at work. At home he lets one move money between his accounts, switch his energy deal and sweep spare cash into savings. It saves him money every month. Last spring it sent a payment to the wrong account, and nobody could tell him who was responsible.",
   hmw:"let customers hand everyday money decisions to AI agents they can trust, see and stop?"},
  {t:"Home is the workplace",d:"time",areas:["Everyday money","Home","Protection"],
   s:u=>.5*u.ai+.3*u.gains+.2*(1-u.earn),
   what:"Hybrid and remote work make the home an office for some people and not others. Energy and broadband costs, insurance needs and where people choose to live all shift, mostly for graduates and higher earners.",
-  tl:[["Now","28% of GB workers hybrid work: 41% of degree holders against 4% with no qualifications.",["ONH"]],["2030s","Flexible and compressed schedules spread as AI changes what needs an office.",["BAW"]],["2040s","Shorter weeks put even more of working life at home.",["B50"]]],
   who:"Aisha and Luke, neighbours",story:"Aisha works from home three days a week on a city salary and pays more for heating and broadband. Luke works local shifts and spends on fuel. Their bank, insurer and energy supplier treat them as identical households.",
   hmw:"recognise that a customer's home is also their workplace, and price, protect and support them accordingly?"},
  {t:"Second careers in care",d:"life",areas:["Pensions","Income","Saving"],
-  s:u=>.45+.35*u.gains+.2*u.ai,
+  s:u=>.45+.35*u.gains+.2*u.comm,
   what:"Care and community roles are among the strongest sources of new work, and many people move into them later in life. Earnings often fall, careers run longer, and pensions get drawn alongside a wage.",
-  tl:[["Now","Care and health are among the fastest-growing occupations to 2030.",["WFG"]],["2030s","BCG's experts expect the strongest job growth in care-based roles supporting community health.",["BNX"]],["2040s","Multi-stage careers and intergenerational teams become normal.",["B50"]]],
   who:"Carol, 58, from bank ops to care",story:"Carol leaves a bank operations job to become a community care worker. She earns less, works shifts and plans to keep going into her seventies. She has a decent pension pot and doesn't know whether to draw on it now to top up her pay.",
   hmw:"help people manage a late-career drop in income, across pensions, savings and debt together?"},
  {t:"Paper-thin buffers",d:"earn",areas:["Saving","Everyday money","Credit"],
-  s:u=>.45*(1-u.gains)+.35*u.earn+.2*u.shock,
+  s:u=>.45*(1-u.gains)+.35*u.earn+.2*u.self,
   what:"Volatile income plus small savings leaves many households one bad month from difficulty. Saving is hard to automate when there is no regular payday to attach it to.",
-  tl:[["Now","21% of UK adults have under £1,000 for emergencies; 8% are usually overdrawn by payday.",["FCB"]],["2030s","Most platform workers use it to top up other income; only around 9% rely on it alone.",["FFC"]],["2040s","In volatile futures, irregular pay is the norm rather than the exception.",["BPR"]]],
   who:"Jade, 24, courier and cleaner",story:"Jade delivers food and cleans offices, and her pay lands on different days every week. Her bank's round-up saver doesn't help because she rarely uses her card. Her emergency fund is, in practice, a buy-now-pay-later limit.",
-  hmw:"make saving automatic for people whose income never arrives the same way twice?"}
+  hmw:"make saving automatic for people whose income never arrives the same way twice?"},
+ {t:"Money in common",d:"society",areas:["Saving","Protection","Credit"],
+  s:u=>.8*u.comm+.2*u.gains,
+  what:"Streets, workplaces and online groups pool money for things banks and insurers struggle to price: a shared repair fund, a community energy scheme, a rota that covers a member's rent in a bad month. Trust is local and personal, and so are the rules.",
+  who:"Grace, 44, school administrator",story:"Grace pays into her street's mutual fund every month. When her boiler failed in January, the fund paid within a day and she repays it over the summer. Her bank sees an unexplained monthly payment and a repair that never touched her card. The fund has no deposit protection, and its treasurer is moving away.",
+  hmw:"work alongside the groups people trust with their money, without taking over what makes them work?"},
+ {t:"The anchor institution",d:"society",areas:["Pensions","Protection","Everyday money"],
+  s:u=>.8*u.inst+.2*(1-u.earn),
+  what:"When people lean on established organisations, expectations rise with the trust. Employers, banks and the state are expected to look ahead on people's behalf: spot trouble early, explain choices plainly and step in before harm. Being trusted becomes an obligation as much as an advantage.",
+  who:"Ray, 63, retired bus driver",story:"Ray has banked with the same provider for forty years and does whatever its app suggests. When it nudged him to move his pension into a lower-risk fund, he did, then read that the fund's fees were high. He doesn't know who to ask now, because the bank was who he asked.",
+  hmw:"honour the trust customers place in us by acting in their interest before they have to ask?"},
+ {t:"Your own finance department",d:"society",areas:["Everyday money","Saving","Pensions"],
+  s:u=>.75*u.self+.25*u.ai,
+  what:"People who rely on themselves run their money like a small business: dashboards, AI tools, side income and self-built safety nets. The confident enjoy the control. Those without time, skill or confidence fall quietly behind, with no institution or community watching.",
+  who:"Kofi, 31, freelance video editor",story:"Kofi tracks every pound across six apps, invests through a self-directed platform and has an AI assistant that drafts his tax return. He loves the control. When he was ill for three weeks, nothing ran itself: two direct debits bounced, his assistant filed late and nobody noticed until the fines arrived.",
+  hmw:"back self-reliant customers with safety nets that catch them when their own systems fail?"}
 ];
