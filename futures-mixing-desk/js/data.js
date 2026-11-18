@@ -1,4 +1,4 @@
-/* Content: sources, forces, worlds and sub-futures. Every figure must carry a source key. */
+/* Content: sources, forces and sub-futures (the futures themselves are in futures.js). Every figure must carry a source key. */
 const SRC = {
   B50:{t:"BCG Henderson Institute, Beyond Tomorrow: Four Scenarios for the World of 2050 (Apr 2026)",u:"https://www.bcg.com/publications/2026/beyond-tomorrow-four-scenarios-for-the-world-of-2050"},
   BPR:{t:"BCG press release on Scenarios 2050 (Apr 2026)",u:"https://www.bcg.com/press/20april2026-global-economy-four-different-directions-2050"},
@@ -34,49 +34,35 @@ const PAL={
 };
 
 
-/* Five forces, three choices each: [choice, what it means, sourced fact].
-   fact.fig is a readout for the future card; fact.now is the "Now" step of How we got here. */
+/* Five forces, three choices each: [choice, what it means]. */
 const FORCES=[
  {id:"ai",ab:"AI",label:"Who decides",q:"Who is making the decisions?",help:"How much control do people hand over to AI?",
   explore:"How this changes agency, accountability, trust and relationships with institutions.",stages:[
-  ["Human-led","AI assists, but people remain in control.",{fig:["74%","of frontline staff already use AI regularly, mostly as an assistant"],now:"AI is already an everyday assistant: 74% of frontline staff use it regularly, while people keep the final say.",src:["BAW"]}],
-  ["Shared control","People and AI make decisions together.",{fig:["47%","of workers spend more time directing or reviewing AI than doing the task"],now:"47% of workers already spend more time directing or reviewing AI than doing the work themselves.",src:["BAW"]}],
-  ["AI-led","AI independently manages many everyday decisions and activities.",{fig:["3 in 4","employees expect AI agents to be vital to their future success"],now:"Three in four employees already expect AI agents to be vital to their future success.",src:["BA5"]}]]},
+  ["Human-led","AI assists, but people remain in control."],
+  ["Shared control","People and AI make decisions together."],
+  ["AI-led","AI independently manages many everyday decisions and activities."]]},
  {id:"gains",ab:"PR",label:"Who prospers",q:"Who shares in the prosperity?",help:"How widely is wealth and opportunity distributed?",
   explore:"Implications for financial security, ownership, affordability, social mobility and access to financial services.",stages:[
-  ["Concentrated","Wealth and opportunity accumulate among a small minority.",{fig:["~½","of global wealth held by the richest 1% in BCG's most unequal 2050 scenario, from about ⅓"],now:"Young people with property-owning parents are almost three times as likely to own a home by 30.",src:["B50","RFP"]}],
-  ["Uneven","Some groups benefit significantly more than others.",{fig:["4.4m","UK jobs lost in IPPR's central AI case, even as GDP rises 6.3%"],now:"Access to change is already uneven: 41% of degree holders can work hybrid, against 4% of people with no qualifications.",src:["IPR","ONH"]}],
-  ["Widespread","Economic opportunity and prosperity are shared more broadly.",{fig:["+13%","UK GDP with no job losses if AI augments workers, IPPR's best case"],now:"In the UK four-day-week pilot, 89% of firms kept the shorter week a year on.",src:["IPR","AUT"]}]]},
+  ["Concentrated","Wealth and opportunity accumulate among a small minority."],
+  ["Uneven","Some groups benefit significantly more than others."],
+  ["Widespread","Economic opportunity and prosperity are shared more broadly."]]},
  {id:"earn",ab:"ER",label:"How people earn",q:"How do people earn a living?",help:"How predictable is income, and where does it come from?",
   explore:"What financial stability means when traditional employment is no longer the universal norm.",stages:[
-  ["Stable jobs","Traditional employment remains the primary source of income.",{fig:["52%","of new first-time buyers' mortgages run to age 65 or later, assuming long, steady careers"],now:"Most people still earn from one job: 3.7% of workers hold a second one.",src:["EXP","ONJ"]}],
-  ["Mixed income","People combine employment with other income streams.",{fig:["1.29m","people in the UK hold a second job in 2026"],now:"Weekly platform work rose from 5.8% of adults in 2016 to 14.7% in 2021.",src:["ONJ","TUC"]}],
-  ["Fluid work","Portfolio careers, independent work and new income models become commonplace.",{fig:["38%","of self-employed people report a mortgage refused because of volatile income"],now:"Weekly platform work rose from 5.8% of adults in 2016 to 14.7% in 2021.",src:["TML","TUC"]}]]},
+  ["Stable jobs","Traditional employment remains the primary source of income."],
+  ["Mixed income","People combine employment with other income streams."],
+  ["Fluid work","Portfolio careers, independent work and new income models become commonplace."]]},
  {id:"society",ab:"SO",label:"What holds us together",q:"What holds society together?",help:"Who and what do people turn to for trust, support and security?",
   explore:"How trust, belonging, responsibility and expectations of financial institutions might change.",stages:[
-  ["Institutions","Established organisations remain central to everyday life.",{fig:["33%","of UK adults have high or moderately high trust in national government"],now:"Trust in institutions starts low: a third of UK adults have high or moderately high trust in national government.",src:["OEC"]}],
-  ["Communities","Networks, local groups and collective systems become more influential.",{fig:["~⅔","of people in their early 20s live with their parents"],now:"Families already act as a safety net: nearly two-thirds of people in their early 20s live with their parents.",src:["RFY"]}],
-  ["Individuals","People increasingly rely on themselves and their own resources.",{fig:["21%","of UK adults have less than £1,000 to fall back on in an emergency"],now:"Self-reliance starts from thin buffers: one in ten UK adults has no cash savings at all.",src:["FCB","FCA"]}]]},
+  ["Institutions","Established organisations remain central to everyday life."],
+  ["Communities","Networks, local groups and collective systems become more influential."],
+  ["Individuals","People increasingly rely on themselves and their own resources."]]},
  {id:"climate",ab:"CL",label:"Climate response",q:"How does society respond to climate change?",help:"How do economies balance adaptation and transition?",
   explore:"Implications for housing, infrastructure, insurance, asset values, lending and ownership.",stages:[
-  ["React","Responses are largely driven by immediate crises and damage.",{fig:["~1.3°C","of warming already, rising fast in BCG's low-regulation scenario"],now:"Warming already sits around 1.3°C above pre-industrial levels.",src:["B50"]}],
-  ["Adapt","Society invests in resilience while gradually transitioning.",{fig:["34m","green-transition jobs worldwide expected by 2030"],now:"The WEF expects the green transition to create 34 million jobs worldwide by 2030.",src:["WFG"]}],
-  ["Transform","Climate priorities fundamentally reshape economies and lifestyles.",{fig:["81→35%","fossil fuels' share of global energy in BCG's climate-first scenario"],now:"Fossil fuels still supply about 81% of global energy.",src:["BPR"]}]]}
+  ["React","Responses are largely driven by immediate crises and damage."],
+  ["Adapt","Society invests in resilience while gradually transitioning."],
+  ["Transform","Climate priorities fundamentally reshape economies and lifestyles."]]}
 ];
 
-/* 243 pre-written worlds, one per combination, keyed by the five choices in FORCES order (e.g. "13231").
-   Filled by js/worlds/*.js. Fields: t title, n nutshell, l everyday life, x tension,
-   f what it challenges for financial services, q three questions, p 2030s (plausible), s 2040s (speculative). */
-const WORLDS={};
-
-/* Look of the main future, set by its lead force and choice: [palette, material] */
-const LEAD_LOOK={
-  ai:[["sky","glass"],["peri","glass"],["magenta","ribbon"]],
-  gains:[["steel","metal"],["peach","studded"],["gold","branch"]],
-  earn:[["sky","studded"],["lime","studded"],["peach","ribbon"]],
-  society:[["steel","metal"],["coral","pearls"],["magenta","glass"]],
-  climate:[["coral","pearls"],["lime","branch"],["gold","branch"]]
-};
 
 const DRIVER_LOOK={ai:["peri","glass"],gains:["magenta","ribbon"],earn:["peach","studded"],time:["gold","glass"],life:["coral","pearls"],society:["sky","pearls"],climate:["lime","branch"]};
 const DRIVER_LABEL={ai:"Who decides",gains:"Who prospers",earn:"How people earn",time:"Decisions and prosperity",life:"Longer lives",society:"What holds us together",climate:"Climate response"};

@@ -30,19 +30,10 @@ function updateStatus(){
 function onChange(){if(generated)dirty=true;updateStatus();}
 function unit(){return{ai:(st.ai-1)/2,gains:(st.gains-1)/2,earn:(st.earn-1)/2,climate:(st.climate-1)/2,
   self:(st.society-1)/2,comm:st.society===2?1:0,inst:st.society===1?1:0};}
-/* Forces ranked by how far the choice sits from the middle; the lead force sets the look and the "Now" fact,
-   the next three supply the figures. The lead rotates among the extreme choices so "Now" varies between combinations. */
-const RANK_ORDER=["ai","gains","society","earn","climate"];
-function rankForces(snap){
-  const ranked=[...RANK_ORDER].sort((a,b)=>(snap[a]===2)-(snap[b]===2)),ext=ranked.filter(id=>snap[id]!==2),pool=ext.length?ext:ranked;
-  const lead=pool[+FORCES.map(f=>snap[f.id]).join("")%pool.length];
-  return [lead,...ranked.filter(id=>id!==lead)];
-}
-const stage=(id,snap)=>FORCES.find(f=>f.id===id).stages[snap[id]-1];
-function worldFor(snap){
-  const key=FORCES.map(f=>snap[f.id]).join(""),W=WORLDS[key],rank=rankForces(snap),look=LEAD_LOOK[rank[0]][snap[rank[0]]-1];
-  return {...W,key,rank,pal:look[0],mat:look[1]};
-}
+/* Match answers to the nearest future by Euclidean distance; differences become "your version" notes. */
+function nearest(snap){const v=FORCES.map(f=>snap[f.id]);return FUTURES.map(F=>({F,d:Math.sqrt(F.p.reduce((a,x,i)=>a+(x-v[i])**2,0))})).sort((a,b)=>a.d-b.d);}
+function twists(F,snap){return FORCES.map((f,i)=>({id:f.id,diff:Math.abs(snap[f.id]-F.p[i])})).filter(x=>x.diff).sort((a,b)=>b.diff-a.diff).slice(0,2).map(x=>TWIST[x.id][snap[x.id]-1]);}
+const withCites=s=>s.replace(/ ?\[\[([A-Z0-9]+)\]\]/g,(m,k)=>" "+cites([k]));
 const level=s=>s>=.7?"Strong signal":s>=.5?"Building":"Faint";
 function code(snap){return FORCES.map(f=>f.ab+snap[f.id]).join(".");}
 
@@ -115,7 +106,8 @@ function runTuner(W,snap,done){
 function generate(){
   if(!complete()||tuning)return;
   const snap={...st};
-  generated={W:worldFor(snap),subs:pickSubs(false),snap,roll:0};
+  const ranked=nearest(snap);
+  generated={W:ranked[0].F,next:ranked[1].F,close:ranked[1].d-ranked[0].d<0.01,subs:pickSubs(false),snap,roll:0};
   dirty=false;tuning=true;updateStatus();
   $("#out").hidden=false;$("#results").hidden=true;
   $("#out").scrollIntoView({behavior:RM.matches?"auto":"smooth",block:"start"});
@@ -129,28 +121,30 @@ function windowHTML(pal,mat,seed,tab,codeTxt,live){
     <span class="code">${codeTxt}</span></div>`;
 }
 function render(){
-  const {W,subs,snap,roll,showChoices}=generated,cd=code(snap),fhz=hz(cd+W.t),lead=stage(W.rank[0],snap)[2];
+  const {W,next,close,subs,snap,roll,showChoices}=generated,cd=code(snap),fhz=hz(cd+W.t),tw=twists(W,snap);
   const tag=t=>`<span class="tl-tag">${t}</span>`,P=PAL[W.pal];
   $("#future").style.setProperty("--c1",P[0]);$("#future").style.setProperty("--c2",P[1]);
   $("#future").innerHTML=`
     ${windowHTML(W.pal,W.mat,hash(cd+W.t),"2050",fhz+" HZ",true)}
     <div class="card-body">
-      <span class="subtitle">Your generated future · signal ${cd}</span>
+      <span class="subtitle">Your generated future · signal ${cd}${close?` · equally close to <b>${next.t}</b>`:""}</span>
       <h2 class="caps">${W.t}</h2>
       <section class="f-sec"><span class="label">The world in a nutshell</span><p class="lede">${W.n}</p></section>
+      <p class="more">${withCites(W.d)}</p>
+      ${tw.length?`<div class="yours"><span class="label">Your version of this future</span>${tw.map(t=>`<p>${t}</p>`).join("")}</div>`:""}
       <div class="world">
         <button class="ghost playback" id="playBtn" type="button" aria-expanded="${!!showChoices}" aria-controls="worldList"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg><span>${showChoices?"Hide your choices":"Play back your choices"}</span></button>
         <div class="world-list" id="worldList" ${showChoices?"":"hidden"}><span class="label">Your five choices</span>${FORCES.map((f,n)=>{const sg=f.stages[snap[f.id]-1];return `<div class="wi"><span class="k">${sg[0]}<small>CH 0${n+1} · ${f.label}</small></span><span>${sg[1]}</span><span class="explore">Explore: ${f.explore}</span></div>`}).join("")}</div>
       </div>
-      <div class="readouts">${W.rank.slice(1,4).map(id=>{const x=stage(id,snap)[2];return `<div class="readout"><b>${x.fig[0]}</b><span>${x.fig[1]} ${cites([x.src[0]])}</span></div>`}).join("")}</div>
+      <div class="readouts">${W.figs.map(x=>`<div class="readout"><b>${x[0]}</b><span>${x[1]} ${cites(x[2])}</span></div>`).join("")}</div>
     </div>
     <div class="f-deep">
       <section class="f-sec"><span class="label">An unexpected tension</span><div class="tension"><p>${W.x}</p></div></section>
       <section class="f-sec"><span class="label">How we got here</span>
         <ol class="timeline">
-          <li><span class="when">Now</span><span>${tag("Evidence")}${lead.now} ${cites(lead.src.slice(-1))}</span></li>
-          <li><span class="when">2030s</span><span>${tag("Plausible")}${W.p}</span></li>
-          <li><span class="when">2040s</span><span>${tag("Speculative")}${W.s}</span></li>
+          <li><span class="when">Now</span><span>${tag("Evidence")}${W.now[0]} ${cites(W.now[1])}</span></li>
+          <li><span class="when">2030s</span><span>${tag("Plausible")}${W.t30}</span></li>
+          <li><span class="when">2040s</span><span>${tag("Speculative")}${W.t40}</span></li>
           <li class="end"><span class="when">2050</span><span>${W.t}</span></li>
         </ol>
       </section>
@@ -206,10 +200,11 @@ function showSub(i){
   panel.hidden=false;
 }
 function summary(){
-  const {W,subs,snap}=generated,lead=stage(W.rank[0],snap)[2],L=[`FUTURE: ${W.t}`,"",`The world in a nutshell: ${W.n}`,"",
+  const {W,subs,snap}=generated,plain=s=>s.replace(/ ?\[\[[A-Z0-9]+\]\]/g,""),L=[`FUTURE: ${W.t}`,"",`The world in a nutshell: ${W.n}`,"",plain(W.d),"",
+    ...twists(W,snap).map(t=>`Your version: ${t}`),"",
     `An unexpected tension: ${W.x}`,"",`What this challenges for financial services: ${W.f}`,"",
     "Three provocations:",...W.v.map(v=>`- ${v}`),"",
-    `How we got here: Now (evidence): ${lead.now} | 2030s (plausible): ${W.p} | 2040s (speculative): ${W.s}`,"",
+    `How we got here: Now (evidence): ${W.now[0]} | 2030s (plausible): ${W.t30} | 2040s (speculative): ${W.t40}`,"",
     "Choices: "+FORCES.map(f=>`${f.label}: ${f.stages[snap[f.id]-1][0]}`).join(" | "),""];
   subs.forEach((x,i)=>L.push(`SUB-FUTURE ${i+1}: ${x.t}`,x.what,`Story (illustrative), ${x.who}: ${x.story}`,`HMW: How might we ${x.hmw}`,""));
   L.push("Sources: see the Futures Mixing Desk source list.");return L.join("\n");
